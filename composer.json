@@ -1,0 +1,34 @@
+{
+    "name": "sellmate/laravel-multi-tenant",
+    "version" : "0.1.0",
+    "license": "MIT",
+    "description": "Multi tenant package for Laravel Framework",
+    "authors": [
+        {
+            "name": "Eunjun Park",
+            "email": "ej@sellmate.co.kr"
+        }
+    ],
+    "require": {
+        "php": "^7.3|^8.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.3.3",
+        "orchestra/testbench": "^3.6",
+        "mockery/mockery": "^1.4.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Sellmate\\Laravel\\MultiTenant\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Sellmate\\Laravel\\MultiTenant\\Providers\\MultiTenantServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
