@@ -1,11 +1,11 @@
 <?php
 
-namespace EJLab\Laravel\MultiTenant;
+namespace Sellmate\Laravel\MultiTenant;
 
 use Config;
 use DB;
 use App\Models\System\Tenant;
-use EJLab\Laravel\MultiTenant\Exceptions\TenantDatabaseException;
+use Sellmate\Laravel\MultiTenant\Exceptions\TenantDatabaseException;
 
 class DatabaseManager
 {

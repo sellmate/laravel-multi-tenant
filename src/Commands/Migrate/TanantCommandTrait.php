@@ -1,6 +1,6 @@
 <?php
 
-namespace EJLab\Laravel\MultiTenant\Commands\Migrate;
+namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 
 use App\Models\System\Tenant;
 use Illuminate\Support\Facades\Schema;

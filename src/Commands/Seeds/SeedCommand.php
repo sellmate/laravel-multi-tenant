@@ -1,9 +1,9 @@
 <?php
 
-namespace EJLab\Laravel\MultiTenant\Commands\Seeds;
+namespace Sellmate\Laravel\MultiTenant\Commands\Seeds;
 
 use App\Models\System\Tenant;
-use EJLab\Laravel\MultiTenant\DatabaseManager;
+use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Illuminate\Database\Console\Seeds\SeedCommand as BaseCommand;
 use Illuminate\Database\Eloquent\Model;
 use Symfony\Component\Console\Input\InputOption;

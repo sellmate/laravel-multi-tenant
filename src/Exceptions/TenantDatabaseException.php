@@ -1,6 +1,6 @@
 <?php
 
-namespace EJLab\Laravel\MultiTenant\Exceptions;
+namespace Sellmate\Laravel\MultiTenant\Exceptions;
 
 class TenantDatabaseException extends \Exception
 {

@@ -1,8 +1,8 @@
 <?php
 
-namespace EJLab\Laravel\MultiTenant\Commands\Migrate;
+namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 
-use EJLab\Laravel\MultiTenant\DatabaseManager;
+use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Illuminate\Database\Console\Migrations\InstallCommand;
 use Symfony\Component\Console\Input\InputOption;
 

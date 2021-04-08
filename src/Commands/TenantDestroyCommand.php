@@ -1,10 +1,10 @@
 <?php
 
-namespace EJLab\Laravel\MultiTenant\Commands;
+namespace Sellmate\Laravel\MultiTenant\Commands;
 
 use App\Models\System\Tenant;
-use EJLab\Laravel\MultiTenant\DatabaseManager;
-use EJLab\Laravel\MultiTenant\Commands\Migrate\TenantCommand;
+use Sellmate\Laravel\MultiTenant\DatabaseManager;
+use Sellmate\Laravel\MultiTenant\Commands\Migrate\TenantCommand;
 use Illuminate\Console\Command;
 
 class TenantDestroyCommand extends Command

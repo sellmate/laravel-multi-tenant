@@ -1,6 +1,6 @@
 <?php
 
-namespace EJLab\Laravel\MultiTenant\Commands\Migrate;
+namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 
 class MigrateMakeCommand extends \Illuminate\Database\Console\Migrations\MigrateMakeCommand
 {

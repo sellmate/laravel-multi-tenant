@@ -1,6 +1,6 @@
 <?php
 
-namespace EJLab\Laravel\MultiTenant\Middleware;
+namespace Sellmate\Laravel\MultiTenant\Middleware;
 
 use Closure;
 

@@ -1,5 +1,5 @@
 <?php
-namespace EJLab\Laravel\MultiTenant;
+namespace Sellmate\Laravel\MultiTenant;
 
 use Laravel\Passport\Bridge\RefreshTokenRepository as BaseRepository;
 

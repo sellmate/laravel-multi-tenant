@@ -1,21 +1,21 @@
 <?php
 
-namespace EJLab\Laravel\MultiTenant\Providers;
+namespace Sellmate\Laravel\MultiTenant\Providers;
 
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
-use EJLab\Laravel\MultiTenant\Commands\TenantSetupCommand;
-use EJLab\Laravel\MultiTenant\Commands\TenantDestroyCommand;
-use EJLab\Laravel\MultiTenant\Commands\ModelMakeCommand;
-use EJLab\Laravel\MultiTenant\Commands\Migrate\MigrateCommand;
-use EJLab\Laravel\MultiTenant\Commands\Migrate\MigrateInstallCommand;
-use EJLab\Laravel\MultiTenant\Commands\Migrate\MigrateMakeCommand;
-use EJLab\Laravel\MultiTenant\Commands\Migrate\MigrateRefreshCommand;
-use EJLab\Laravel\MultiTenant\Commands\Migrate\MigrateResetCommand;
-use EJLab\Laravel\MultiTenant\Commands\Migrate\MigrateRollbackCommand;
-use EJLab\Laravel\MultiTenant\Commands\Migrate\MigrateStatusCommand;
-use EJLab\Laravel\MultiTenant\Commands\Seeds\SeedCommand;
-use EJLab\Laravel\MultiTenant\Commands\Seeds\SeederMakeCommand;
+use Sellmate\Laravel\MultiTenant\Commands\TenantSetupCommand;
+use Sellmate\Laravel\MultiTenant\Commands\TenantDestroyCommand;
+use Sellmate\Laravel\MultiTenant\Commands\ModelMakeCommand;
+use Sellmate\Laravel\MultiTenant\Commands\Migrate\MigrateCommand;
+use Sellmate\Laravel\MultiTenant\Commands\Migrate\MigrateInstallCommand;
+use Sellmate\Laravel\MultiTenant\Commands\Migrate\MigrateMakeCommand;
+use Sellmate\Laravel\MultiTenant\Commands\Migrate\MigrateRefreshCommand;
+use Sellmate\Laravel\MultiTenant\Commands\Migrate\MigrateResetCommand;
+use Sellmate\Laravel\MultiTenant\Commands\Migrate\MigrateRollbackCommand;
+use Sellmate\Laravel\MultiTenant\Commands\Migrate\MigrateStatusCommand;
+use Sellmate\Laravel\MultiTenant\Commands\Seeds\SeedCommand;
+use Sellmate\Laravel\MultiTenant\Commands\Seeds\SeederMakeCommand;
 
 class MultiTenantServiceProvider extends ServiceProvider
 {

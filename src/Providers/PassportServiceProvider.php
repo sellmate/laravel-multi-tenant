@@ -1,9 +1,9 @@
 <?php
 
-namespace EJLab\Laravel\MultiTenant\Providers;
+namespace Sellmate\Laravel\MultiTenant\Providers;
 
 use Laravel\Passport\PassportServiceProvider as BaseProvider;
-use EJLab\Laravel\MultiTenant\RefreshTokenRepository;
+use Sellmate\Laravel\MultiTenant\RefreshTokenRepository;
 
 class PassportServiceProvider extends BaseProvider
 {

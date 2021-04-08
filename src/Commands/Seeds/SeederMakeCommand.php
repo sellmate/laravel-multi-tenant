@@ -1,6 +1,6 @@
 <?php
 
-namespace EJLab\Laravel\MultiTenant\Commands\Seeds;
+namespace Sellmate\Laravel\MultiTenant\Commands\Seeds;
 
 use Illuminate\Database\Console\Seeds\SeederMakeCommand as BaseCommand;
 use Illuminate\Support\Composer;
