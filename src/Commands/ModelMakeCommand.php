@@ -70,8 +70,8 @@ class ModelMakeCommand extends BaseCommand
         $stub = $this->files->get($this->getStub());
         
         $connection = '';
-        if ($this->input->getOption('system')) $connection = Config::get('elmt.system-connection', 'system');
-        elseif ($this->input->getOption('tenant')) $connection = Config::get('elmt.tenant-connection', 'tenant');
+        if ($this->input->getOption('system')) $connection = Config::get('multitenancy.system-connection', 'system');
+        elseif ($this->input->getOption('tenant')) $connection = Config::get('multitenancy.tenant-connection', 'tenant');
 
         return $this->replaceConnection($stub, $connection)->replaceNamespace($stub, $name)->replaceClass($stub, $name);
     }

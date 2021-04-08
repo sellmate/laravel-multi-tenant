@@ -4,9 +4,6 @@ namespace Sellmate\Laravel\MultiTenant\Providers;
 
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
-use Sellmate\Laravel\MultiTenant\Commands\TenantSetupCommand;
-use Sellmate\Laravel\MultiTenant\Commands\TenantDestroyCommand;
-use Sellmate\Laravel\MultiTenant\Commands\ModelMakeCommand;
 use Sellmate\Laravel\MultiTenant\Commands\Migrate\MigrateCommand;
 use Sellmate\Laravel\MultiTenant\Commands\Migrate\MigrateInstallCommand;
 use Sellmate\Laravel\MultiTenant\Commands\Migrate\MigrateMakeCommand;
@@ -14,8 +11,11 @@ use Sellmate\Laravel\MultiTenant\Commands\Migrate\MigrateRefreshCommand;
 use Sellmate\Laravel\MultiTenant\Commands\Migrate\MigrateResetCommand;
 use Sellmate\Laravel\MultiTenant\Commands\Migrate\MigrateRollbackCommand;
 use Sellmate\Laravel\MultiTenant\Commands\Migrate\MigrateStatusCommand;
+use Sellmate\Laravel\MultiTenant\Commands\ModelMakeCommand;
 use Sellmate\Laravel\MultiTenant\Commands\Seeds\SeedCommand;
 use Sellmate\Laravel\MultiTenant\Commands\Seeds\SeederMakeCommand;
+use Sellmate\Laravel\MultiTenant\Commands\TenantDestroyCommand;
+use Sellmate\Laravel\MultiTenant\Commands\TenantSetupCommand;
 
 class MultiTenantServiceProvider extends ServiceProvider
 {
@@ -27,7 +27,7 @@ class MultiTenantServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->publishes([
-            __DIR__.'/../../config/elmt.php' => config_path('elmt.php'),
+            __DIR__.'/../../config/multitenancy.php' => config_path('multitenancy.php'),
             __DIR__.'/../../database/migrations/' => database_path('migrations'),
             __DIR__.'/../../database/Tenant.php' => app_path('Models/System/Tenant.php'),
         ]);

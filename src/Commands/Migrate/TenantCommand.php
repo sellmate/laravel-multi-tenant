@@ -3,13 +3,9 @@
 namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 
 use App\Models\System\Tenant;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-use DB;
-
-/**
- * 
- */
 trait TenantCommand
 {
     protected $manager;
@@ -20,7 +16,7 @@ trait TenantCommand
 
         if (Schema::hasTable(Tenant::getTableName())) {
             $qb = Tenant::where('setup_has_done', $setup);
-            if ($this->option('domain')) $qb->where(config('elmt.tenant-id-column', 'domain'), $this->option('domain'));
+            if ($this->option('domain')) $qb->where(config('multitenancy.tenant-id-column', 'domain'), $this->option('domain'));
             $tenants = $qb->get();
 
             if (count($tenants) == 0) {

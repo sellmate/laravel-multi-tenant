@@ -2,11 +2,10 @@
 
 namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 
-use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Illuminate\Database\Console\Migrations\RollbackCommand;
+use Illuminate\Support\Facades\DB;
+use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Symfony\Component\Console\Input\InputOption;
-
-use DB;
 
 class MigrateRollbackCommand extends RollbackCommand
 {

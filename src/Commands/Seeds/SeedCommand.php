@@ -3,12 +3,11 @@
 namespace Sellmate\Laravel\MultiTenant\Commands\Seeds;
 
 use App\Models\System\Tenant;
-use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Illuminate\Database\Console\Seeds\SeedCommand as BaseCommand;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Symfony\Component\Console\Input\InputOption;
-
-use DB;
 
 class SeedCommand extends BaseCommand
 {

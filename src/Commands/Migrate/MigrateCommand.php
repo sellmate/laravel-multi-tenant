@@ -2,8 +2,8 @@
 
 namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 
-use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Illuminate\Database\Console\Migrations\MigrateCommand as BaseMigrateCommand;
+use Sellmate\Laravel\MultiTenant\DatabaseManager;
 
 class MigrateCommand extends BaseMigrateCommand
 {

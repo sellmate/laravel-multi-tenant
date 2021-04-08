@@ -2,8 +2,8 @@
 
 namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 
-use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Illuminate\Database\Console\Migrations\StatusCommand;
+use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Symfony\Component\Console\Input\InputOption;
 
 class MigrateStatusCommand extends StatusCommand

@@ -3,10 +3,10 @@
 namespace Sellmate\Laravel\MultiTenant\Middleware;
 
 use App\Models\System\Tenant;
-use Sellmate\Laravel\MultiTenant\DatabaseManager;
-
 use Closure;
-use DB;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Sellmate\Laravel\MultiTenant\DatabaseManager;
 
 class HandleTenantConnection
 {
@@ -17,11 +17,11 @@ class HandleTenantConnection
      * @param  \Closure  $next
      * @return mixed
      */
-    public function handle($request, Closure $next)
+    public function handle(Request $request, Closure $next)
     {
         $parameters = $request->route()->parameters();
-        if (isset($parameters[config('elmt.tenant-id-parameter', 'domain')])) {
-            $tenant = Tenant::where(config('elmt.tenant-id-column', 'domain'), $parameters[config('elmt.tenant-id-parameter', 'domain')])->get()->first();
+        if (isset($parameters[config('multitenancy.tenant-id-parameter', 'domain')])) {
+            $tenant = Tenant::where(config('multitenancy.tenant-id-column', 'domain'), $parameters[config('multitenancy.tenant-id-parameter', 'domain')])->get()->first();
             if ($tenant) {
                 $manager = new DatabaseManager();
                 $manager->setConnection($tenant);

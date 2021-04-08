@@ -15,7 +15,7 @@ class RemoveTenantIdParameter
      */
     public function handle($request, Closure $next)
     {
-        $request->route()->forgetParameter(config('elmt.tenant-id-parameter', 'domain'));
+        $request->route()->forgetParameter(config('multitenancy.tenant-id-parameter', 'domain'));
         return $next($request);
     }
 }
