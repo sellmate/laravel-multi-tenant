@@ -2,10 +2,9 @@
 
 namespace Sellmate\Laravel\MultiTenant\Commands;
 
-use App\Models\System\Tenant;
-use Sellmate\Laravel\MultiTenant\DatabaseManager;
-use Sellmate\Laravel\MultiTenant\Commands\Migrate\TenantCommand;
 use Illuminate\Console\Command;
+use Sellmate\Laravel\MultiTenant\Commands\Migrate\TenantCommand;
+use Sellmate\Laravel\MultiTenant\DatabaseManager;
 
 class TenantSetupCommand extends Command
 {

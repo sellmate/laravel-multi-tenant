@@ -2,6 +2,7 @@
 
 namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Console\Migrations\MigrateCommand as BaseMigrateCommand;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
 
@@ -33,9 +34,9 @@ class MigrateCommand extends BaseMigrateCommand
      * @param  \Illuminate\Database\Migrations\Migrator  $migrator
      * @return void
      */
-    public function __construct(\Illuminate\Database\Migrations\Migrator $migrator)
+    public function __construct(\Illuminate\Database\Migrations\Migrator $migrator, Dispatcher $dispatcher)
     {
-        parent::__construct($migrator);
+        parent::__construct($migrator, $dispatcher);
 
         $this->manager = new DatabaseManager();
     }

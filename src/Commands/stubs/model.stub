@@ -1,11 +1,13 @@
 <?php
 
-namespace DummyNamespace;
+namespace {{ namespace }};
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class DummyClass extends Model
+class {{ class }} extends Model
 {
-    protected $connection = 'DummyConnectionName';
-    //
+    use HasFactory;
+
+    protected $connection = '{{ connection }}';
 }

@@ -18,7 +18,10 @@ class SeedCommand extends BaseCommand
      */
     public function handle()
     {
-        if (!$this->confirmToProceed()) return;
+        if (! $this->confirmToProceed()) {
+            return 1;
+        }
+
         $manager = new DatabaseManager();
         DB::setDefaultConnection($manager->systemConnectionName);
 
@@ -57,18 +60,6 @@ class SeedCommand extends BaseCommand
             });
 
         }
-    }
-
-    /**
-     * Get a seeder instance from the container.
-     *
-     * @return \Illuminate\Database\Seeder
-     */
-    protected function getSeeder()
-    {
-        $class = $this->laravel->make($this->input->getOption('class'));
-
-        return $class->setContainer($this->laravel)->setCommand($this);
     }
     
     /**

@@ -2,7 +2,9 @@
 
 namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 
-class MigrateMakeCommand extends \Illuminate\Database\Console\Migrations\MigrateMakeCommand
+use Illuminate\Database\Console\Migrations\MigrateMakeCommand as BaseCommand;
+
+class MigrateMakeCommand extends BaseCommand
 {
     /**
      * The name and signature of the console command.

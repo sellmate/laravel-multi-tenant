@@ -2,9 +2,9 @@
 
 namespace Sellmate\Laravel\MultiTenant\Commands;
 
-use Config;
 use Illuminate\Support\Str;
 use Illuminate\Foundation\Console\ModelMakeCommand as BaseCommand;
+use Illuminate\Support\Facades\Config;
 use Symfony\Component\Console\Input\InputOption;
 
 class ModelMakeCommand extends BaseCommand
@@ -31,17 +31,6 @@ class ModelMakeCommand extends BaseCommand
         elseif ($this->input->getOption('system')) $args['--system'] = TRUE;
 
         $this->call('make:migration', $args);
-    }
-
-    /**
-     * Get the stub file for the generator.
-     *
-     * @return string
-     */
-    protected function getStub()
-    {
-        if ($this->input->getOption('tenant') || $this->input->getOption('system')) return __DIR__.'/stubs/model.stub';
-        else return parent::getStub();
     }
 
     /**
@@ -78,7 +67,7 @@ class ModelMakeCommand extends BaseCommand
 
     protected function replaceConnection(&$stub, $connection)
     {
-        $stub = str_replace('DummyConnectionName', $connection, $stub);
+        $stub = str_replace(['DummyConnectionName', '{{ connection }}', '{{connection}}'], $connection, $stub);
 
         return $this;
     }

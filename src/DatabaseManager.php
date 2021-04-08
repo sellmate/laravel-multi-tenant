@@ -2,9 +2,9 @@
 
 namespace Sellmate\Laravel\MultiTenant;
 
-use Config;
-use Illuminate\Support\Facades\DB;
 use App\Models\System\Tenant;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Sellmate\Laravel\MultiTenant\Exceptions\TenantDatabaseException;
 
 class DatabaseManager
