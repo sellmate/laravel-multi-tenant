@@ -3,9 +3,6 @@
 namespace Sellmate\Laravel\MultiTenant\Commands\Seeds;
 
 use Illuminate\Database\Console\Seeds\SeederMakeCommand as BaseCommand;
-use Illuminate\Support\Composer;
-use Illuminate\Filesystem\Filesystem;
-use Illuminate\Console\GeneratorCommand;
 use Symfony\Component\Console\Input\InputOption;
 
 class SeederMakeCommand extends BaseCommand
