@@ -17,4 +17,34 @@ class Tenant extends Model
     {
         return with(new static)->getTable();
     }
+
+    /* 
+     * 아래 메서드들을 오버라이딩 하여 커넥션 제어
+     */
+    /* 
+    public function getDatabaseName()
+    {
+        //
+    }
+    
+    public function getDatabaseUsername()
+    {
+        // 
+    }
+    
+    public function getDatabasePassword()
+    {
+        // 
+    }
+    
+    public function getDbHostAttribute()
+    {
+        // 
+    }
+
+    public function getDbPortAttribute()
+    {
+        //
+    }
+     */
 }

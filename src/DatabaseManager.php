@@ -63,7 +63,7 @@ class DatabaseManager
         if (method_exists($this->tenant, 'getDatabaseName')) {
             return $this->tenant->getDatabaseName();
         } else {
-            return str_replace(' ', '_', strtolower(Config::get('app.name', 'elmt'))).'_'.$this->tenant->domain;
+            return str_replace(' ', '_', strtolower(Config::get('app.name', 'multitenancy'))).'_'.$this->tenant->domain;
         }
     }
 
@@ -72,7 +72,7 @@ class DatabaseManager
         if (method_exists($this->tenant, 'getDatabaseUsername')) {
             return $this->tenant->getDatabaseUsername();
         } else {
-            return str_replace(' ', '_', strtolower(Config::get('app.name', 'elmt'))).'_'.$this->tenant->domain;
+            return str_replace(' ', '_', strtolower(Config::get('app.name', 'multitenancy'))).'_'.$this->tenant->domain;
         }
     }
 
