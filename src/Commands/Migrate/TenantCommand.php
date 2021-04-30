@@ -34,11 +34,13 @@ trait TenantCommand
     protected function setSystemDatabase()
     {
         $this->input->setOption('database', $this->manager->systemConnectionName);
+        config(['passport.storage.database.connection' => $this->manager->systemConnectionName]);
     }
 
     protected function setTenantDatabase()
     {
         $this->input->setOption('database', $this->manager->tenantConnectionName);
+        config(['passport.storage.database.connection' => $this->manager->tenantConnectionName]);
     }
 
     /**
