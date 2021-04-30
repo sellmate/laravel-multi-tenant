@@ -1,6 +1,6 @@
 <?php
 
-namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
+namespace Sellmate\Laravel\MultiTenant\Commands;
 
 use App\Models\System\Tenant;
 use Illuminate\Support\Facades\DB;

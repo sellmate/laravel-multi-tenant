@@ -3,7 +3,6 @@
 namespace Sellmate\Laravel\MultiTenant\Commands;
 
 use Illuminate\Console\Command;
-use Sellmate\Laravel\MultiTenant\Commands\Migrate\TenantCommand;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
 
 class TenantDestroyCommand extends Command
