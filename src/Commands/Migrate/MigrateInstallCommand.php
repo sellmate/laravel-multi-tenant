@@ -44,7 +44,11 @@ class MigrateInstallCommand extends InstallCommand
                 parent::handle();
             }
         } else {
-            $this->setSystemDatabase();
+            if ($this->option('database') == $this->manager->tenantConnectionName) {
+                $this->setTenantDatabase();
+            } else {
+                $this->setSystemDatabase();
+            }
             parent::handle();
         }
     }

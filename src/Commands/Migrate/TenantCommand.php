@@ -5,10 +5,11 @@ namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 use App\Models\System\Tenant;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Sellmate\Laravel\MultiTenant\DatabaseManager;
 
 trait TenantCommand
 {
-    protected $manager;
+    protected DatabaseManager $manager;
 
     protected function getTenants($setup = TRUE)
     {
