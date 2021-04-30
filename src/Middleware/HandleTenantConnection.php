@@ -19,9 +19,11 @@ class HandleTenantConnection
      */
     public function handle(Request $request, Closure $next)
     {
+        $idParameter = config('multitenancy.tenant-id-parameter', 'domain');
+        $idColumn = config('multitenancy.tenant-id-column', 'domain');
         $parameters = $request->route()->parameters();
-        if (isset($parameters[config('multitenancy.tenant-id-parameter', 'domain')])) {
-            $tenant = Tenant::where(config('multitenancy.tenant-id-column', 'domain'), $parameters[config('multitenancy.tenant-id-parameter', 'domain')])->get()->first();
+        if (isset($parameters[$idParameter])) {
+            $tenant = Tenant::where($idColumn, $parameters[$idParameter])->get()->first();
             if ($tenant) {
                 $manager = new DatabaseManager();
                 $manager->setConnection($tenant);
