@@ -26,7 +26,7 @@ class MigrateCommand extends BaseMigrateCommand
                 {--seed : Indicates if the seed task should be re-run}
                 {--step : Force the migrations to be run so they can be rolled back individually}";
 
-    protected $manager;
+    protected DatabaseManager $manager;
 
     /**
      * Create a new migration command instance.

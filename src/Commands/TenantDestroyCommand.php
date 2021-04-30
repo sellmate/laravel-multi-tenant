@@ -10,7 +10,7 @@ class TenantDestroyCommand extends Command
 {
     use TenantCommand;
 
-    protected $manager;
+    protected DatabaseManager $manager;
 
     /**
      * The name and signature of the console command.
