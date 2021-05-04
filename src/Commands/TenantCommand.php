@@ -31,16 +31,22 @@ trait TenantCommand
         }
     }
 
-    protected function setSystemDatabase()
+    protected function setSystemDatabase($passport = false)
     {
-        $this->input->setOption('database', $this->manager->systemConnectionName);
-        config(['passport.storage.database.connection' => $this->manager->systemConnectionName]);
+        if ($passport) {
+            config(['passport.storage.database.connection' => $this->manager->systemConnectionName]);
+        } else {
+            $this->input->setOption('database', $this->manager->systemConnectionName);
+        }
     }
 
-    protected function setTenantDatabase()
+    protected function setTenantDatabase($passport = false)
     {
-        $this->input->setOption('database', $this->manager->tenantConnectionName);
-        config(['passport.storage.database.connection' => $this->manager->tenantConnectionName]);
+        if ($passport) {
+            config(['passport.storage.database.connection' => $this->manager->tenantConnectionName]);
+        } else {
+            $this->input->setOption('database', $this->manager->tenantConnectionName);
+        }
     }
 
     /**
