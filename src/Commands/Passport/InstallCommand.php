@@ -58,6 +58,8 @@ class InstallCommand extends BaseInstallCommand
                 $tenantOptions = ['--tenant' => true];
                 if ($this->option('domain')) {
                     $tenantOptions['--domain'] = $this->option('domain');
+                } else {
+                    $tenantOptions['--domain'] = $tenant->{config('multitenancy.tenant-id-column', 'domain')};
                 }
                 $this->call('passport:client', array_merge($tenantOptions, ['--personal' => true, '--name' => config('app.name').' Personal Access Client']));
                 $this->call('passport:client', array_merge($tenantOptions, ['--password' => true, '--name' => config('app.name').' Password Grant Client', '--provider' => $provider]));
