@@ -50,7 +50,7 @@ class ClientCommand extends BaseClientCommand
     {
         if ($this->option('tenant')) {
             $tenants = $this->getTenants();
-            $this->setTenantDatabase(true);
+            $this->setTenantDatabase();
             $progressBar = $this->output->createProgressBar(count($tenants));
             foreach ($tenants as $tenant) {
                 $this->manager->setConnection($tenant);
@@ -59,7 +59,7 @@ class ClientCommand extends BaseClientCommand
                 parent::handle($clients);
             }
         } else {
-            $this->setSystemDatabase(true);
+            $this->setSystemDatabase();
             parent::handle($clients);
         }
     }

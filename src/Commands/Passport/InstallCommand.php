@@ -49,7 +49,7 @@ class InstallCommand extends BaseInstallCommand
             }
 
             $tenants = $this->getTenants();
-            $this->setTenantDatabase(true);
+            $this->setTenantDatabase();
             $progressBar = $this->output->createProgressBar(count($tenants));
             foreach ($tenants as $tenant) {
                 $this->manager->setConnection($tenant);
@@ -65,7 +65,7 @@ class InstallCommand extends BaseInstallCommand
                 $this->call('passport:client', array_merge($tenantOptions, ['--password' => true, '--name' => config('app.name').' Password Grant Client', '--provider' => $provider]));
             }
         } else {
-            $this->setSystemDatabase(true);
+            $this->setSystemDatabase();
             parent::handle();
         }
     }
