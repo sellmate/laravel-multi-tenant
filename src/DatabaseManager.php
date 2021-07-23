@@ -3,9 +3,12 @@
 namespace Sellmate\Laravel\MultiTenant;
 
 use App\Models\System\Tenant;
+use Exception;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
-use Sellmate\Laravel\MultiTenant\Exceptions\TenantDatabaseException;
+use Sellmate\Laravel\MultiTenant\DatabaseDrivers\MySqlDriver;
+use Sellmate\Laravel\MultiTenant\DatabaseDrivers\SQLiteDriver;
+use Sellmate\Laravel\MultiTenant\DatabaseDrivers\SqlServerDriver;
 
 class DatabaseManager
 {
@@ -88,57 +91,41 @@ class DatabaseManager
     {
         $config = $this->getTenantConfig();
 
-        if ($config['driver'] == 'sqlite') {
-            touch($config['database']);
-        } else {
-            return DB::connection($this->tenantAdminConnectionName)->transaction(function () use ($config) {
-                $result = false;
-                $result = DB::connection($this->tenantAdminConnectionName)->statement(
-                    "CREATE USER IF NOT EXISTS `{$config['username']}`@'%' IDENTIFIED BY '{$config['password']}';"
-                );
-                if (!$result) throw new TenantDatabaseException("Could not create user '{$config['username']}'");
-
-                $result = DB::connection($this->tenantAdminConnectionName)->statement(
-                    "CREATE DATABASE IF NOT EXISTS `{$config['database']}`;"
-                );
-                if (!$result) throw new TenantDatabaseException("Could not create database '{$config['database']}'");
-
-                $result = DB::connection($this->tenantAdminConnectionName)->statement(
-                    "GRANT ALL ON `{$config['database']}`.* TO `{$config['username']}`@'%';"
-                );
-                if (!$result) throw new TenantDatabaseException("Could not grant privileges to user '{$config['username']}' for '{$config['database']}'");
-
-                return true;
-            });
+        switch ($config['driver']) {
+            case 'sqlite':
+                $driver = new SQLiteDriver;
+                break;
+            case 'sqlsrv':
+                $driver = new SqlServerDriver;
+                break;
+            case 'mysql':
+                $driver = new MySqlDriver;
+                break;
+            default:
+                throw new Exception('Unknown database driver');
         }
+
+        $driver->create(DB::connection($this->tenantAdminConnectionName), $config);
     }
 
     public function delete()
     {
         $config = $this->getTenantConfig();
 
-        if ($config['driver'] == 'sqlite') {
-            unlink($config['database']);
-        } else {
-            return DB::connection($this->tenantAdminConnectionName)->transaction(function () use ($config) {
-                $result = false;
-                $result = DB::connection($this->tenantAdminConnectionName)->statement(
-                    "REVOKE ALL ON `{$config['database']}`.* FROM `{$config['username']}`@'%';"
-                );
-                if (!$result) throw new TenantDatabaseException("Could not revoke privileges from user '{$config['username']}' for '{$config['database']}'");
-
-                $result = DB::connection($this->tenantAdminConnectionName)->statement(
-                    "DROP DATABASE IF EXISTS `{$config['database']}`;"
-                );
-                if (!$result) throw new TenantDatabaseException("Could not drop database '{$config['database']}'");
-
-                $result = DB::connection($this->tenantAdminConnectionName)->statement(
-                    "DROP USER IF EXISTS `{$config['username']}`@'%';"
-                );
-                if (!$result) throw new TenantDatabaseException("Could not drop user '{$config['username']}'");
-
-                return true;
-            });
+        switch ($config['driver']) {
+            case 'sqlite':
+                $driver = new SQLiteDriver;
+                break;
+            case 'sqlsrv':
+                $driver = new SqlServerDriver;
+                break;
+            case 'mysql':
+                $driver = new MySqlDriver;
+                break;
+            default:
+                throw new Exception('Unknown database driver');
         }
+
+        $driver->delete(DB::connection($this->tenantAdminConnectionName), $config);
     }
 }
