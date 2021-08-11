@@ -87,45 +87,36 @@ class DatabaseManager
         }
     }
 
-    public function create()
+    public function setupTenant()
     {
         $config = $this->getTenantConfig();
-
-        switch ($config['driver']) {
-            case 'sqlite':
-                $driver = new SQLiteDriver;
-                break;
-            case 'sqlsrv':
-                $driver = new SqlServerDriver;
-                break;
-            case 'mysql':
-                $driver = new MySqlDriver;
-                break;
-            default:
-                throw new Exception('Unknown database driver');
-        }
-
-        $driver->create(DB::connection($this->tenantAdminConnectionName), $config);
+        $driver = $this->getTenantAdminConnectionDriver($config['driver']);
+        $driver->setup($config);
     }
 
-    public function delete()
+    public function destroyTenant()
     {
         $config = $this->getTenantConfig();
+        $driver = $this->getTenantAdminConnectionDriver($config['driver']);
+        $driver->destroy($config);
+    }
 
-        switch ($config['driver']) {
+    private function getTenantAdminConnectionDriver($driverName)
+    {
+        switch ($driverName) {
             case 'sqlite':
-                $driver = new SQLiteDriver;
+                $driver = new SQLiteDriver($this->tenantAdminConnectionName);
                 break;
             case 'sqlsrv':
-                $driver = new SqlServerDriver;
+                $driver = new SqlServerDriver($this->tenantAdminConnectionName);
                 break;
             case 'mysql':
-                $driver = new MySqlDriver;
+                $driver = new MySqlDriver($this->tenantAdminConnectionName);
                 break;
             default:
                 throw new Exception('Unknown database driver');
         }
 
-        $driver->delete(DB::connection($this->tenantAdminConnectionName), $config);
+        return $driver;
     }
 }

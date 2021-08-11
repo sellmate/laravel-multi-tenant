@@ -2,18 +2,15 @@
 
 namespace Sellmate\Laravel\MultiTenant\DatabaseDrivers;
 
-use Illuminate\Database\ConnectionInterface;
-use Sellmate\Laravel\MultiTenant\Exceptions\TenantDatabaseException;
-
-class SQLiteDriver implements DatabaseDriver
+class SQLiteDriver extends DatabaseDriver
 {
-    public function Create(ConnectionInterface $connection, array $config)
+    public function setup(array $config)
     {
-        return touch($config['database']);
+        $this->createDatabase($config['database']);
     }
 
-    public function Delete(ConnectionInterface $connection, array $config)
+    public function destroy(array $config)
     {
-        return unlink($config['database']);
+        $this->dropDatabase($config['database']);
     }
 }

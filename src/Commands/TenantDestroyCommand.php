@@ -51,7 +51,7 @@ class TenantDestroyCommand extends Command
             $this->info("Deleting database and user for '{$tenant->name}'...");
 
             $this->manager->setConnection($tenant);
-            $this->manager->delete();
+            $this->manager->destroyTenant();
 
             $tenant->setup_has_done = FALSE;
             $tenant->save();

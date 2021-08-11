@@ -1,6 +1,6 @@
 {
     "name": "sellmate/laravel-multi-tenant",
-    "version" : "0.1.9",
+    "version" : "0.1.10",
     "license": "MIT",
     "description": "Multi tenant package for Laravel Framework",
     "authors": [

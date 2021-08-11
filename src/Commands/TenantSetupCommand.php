@@ -52,7 +52,7 @@ class TenantSetupCommand extends Command
             $this->info("Setting up database for '{$tenant->name}'...");
 
             $this->manager->setConnection($tenant);
-            $this->manager->create();
+            $this->manager->setupTenant();
 
             if ($this->option('migrate')) {
                 $this->call('migrate', [
