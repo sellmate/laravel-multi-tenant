@@ -7,7 +7,7 @@ use Sellmate\Laravel\MultiTenant\DatabaseManager;
 
 class TenantSetupCommand extends Command
 {
-    use TenantCommand;
+    use TenantCommand, EnvCheck;
 
     protected DatabaseManager $manager;
 
@@ -46,6 +46,7 @@ class TenantSetupCommand extends Command
      */
     public function handle()
     {
+        $this->checkTenant();
         $tenants = $this->getTenants(FALSE);
         $progressBar = $this->output->createProgressBar(count($tenants));
         foreach ($tenants as $tenant) {
