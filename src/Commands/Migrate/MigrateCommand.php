@@ -4,12 +4,13 @@ namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Console\Migrations\MigrateCommand as BaseMigrateCommand;
+use Sellmate\Laravel\MultiTenant\Commands\EnvCheck;
 use Sellmate\Laravel\MultiTenant\Commands\TenantCommand;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
 
 class MigrateCommand extends BaseMigrateCommand
 {
-    use TenantCommand;
+    use TenantCommand, EnvCheck;
 
     /**
      * The name and signature of the console command.
@@ -50,6 +51,7 @@ class MigrateCommand extends BaseMigrateCommand
     public function handle()
     {
         if ($this->option('tenant')) {
+            $this->checkTenant();
             $tenants = $this->getTenants();
             $progressBar = $this->output->createProgressBar(count($tenants));
             $this->setTenantDatabase();
@@ -57,9 +59,11 @@ class MigrateCommand extends BaseMigrateCommand
                 $this->manager->setConnection($tenant);
                 $this->info("Migrating for '{$tenant->name}'...");
                 $progressBar->advance();
+                $this->newLine();
                 parent::handle();
             }
         } else {
+            $this->checkSystem();
             $this->setSystemDatabase();
             parent::handle();
         }

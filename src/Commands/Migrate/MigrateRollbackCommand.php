@@ -4,13 +4,14 @@ namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 
 use Illuminate\Database\Console\Migrations\RollbackCommand;
 use Illuminate\Support\Facades\DB;
+use Sellmate\Laravel\MultiTenant\Commands\EnvCheck;
 use Sellmate\Laravel\MultiTenant\Commands\TenantCommand;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Symfony\Component\Console\Input\InputOption;
 
 class MigrateRollbackCommand extends RollbackCommand
 {
-    use TenantCommand;
+    use TenantCommand, EnvCheck;
     
     /**
      * Create a new migration rollback command instance.
@@ -35,6 +36,7 @@ class MigrateRollbackCommand extends RollbackCommand
         DB::setDefaultConnection($this->manager->systemConnectionName);
 
         if ($this->option('tenant')) {
+            $this->checkTenant();
             $tenants = $this->getTenants();
             $progressBar = $this->output->createProgressBar(count($tenants));
             $this->setTenantDatabase();
@@ -42,9 +44,11 @@ class MigrateRollbackCommand extends RollbackCommand
                 $this->manager->setConnection($tenant);
                 $this->info("Rolling back '{$tenant->name}'...");
                 $progressBar->advance();
+                $this->newLine();
                 parent::handle();
             }
         } else {
+            $this->checkSystem();
             $this->setSystemDatabase();
             parent::handle();
         }

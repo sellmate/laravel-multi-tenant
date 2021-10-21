@@ -7,7 +7,7 @@ use Sellmate\Laravel\MultiTenant\DatabaseManager;
 
 class TenantDestroyCommand extends Command
 {
-    use TenantCommand;
+    use TenantCommand, EnvCheck;
 
     protected DatabaseManager $manager;
 
@@ -43,6 +43,7 @@ class TenantDestroyCommand extends Command
      */
     public function handle()
     {
+        $this->checkTenant();
         $tenants = $this->getTenants();
 
         $progressBar = $this->output->createProgressBar(count($tenants));

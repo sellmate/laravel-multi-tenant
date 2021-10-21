@@ -4,13 +4,14 @@ namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 
 use Illuminate\Database\Console\Migrations\ResetCommand;
 use Illuminate\Support\Facades\DB;
+use Sellmate\Laravel\MultiTenant\Commands\EnvCheck;
 use Sellmate\Laravel\MultiTenant\Commands\TenantCommand;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Symfony\Component\Console\Input\InputOption;
 
 class MigrateResetCommand extends ResetCommand
 {
-    use TenantCommand;
+    use TenantCommand, EnvCheck;
 
     /**
      * Create a new migration rollback command instance.
@@ -35,6 +36,7 @@ class MigrateResetCommand extends ResetCommand
         DB::setDefaultConnection($this->manager->systemConnectionName);
 
         if ($this->input->getOption('tenant')) {
+            $this->checkTenant();
             $tenants = $this->getTenants();
             $progressBar = $this->output->createProgressBar(count($tenants));
             $this->setTenantDatabase();
@@ -45,6 +47,7 @@ class MigrateResetCommand extends ResetCommand
                 parent::handle();
             }
         } else {
+            $this->checkSystem();
             $this->setSystemDatabase();
             parent::handle();
         }
