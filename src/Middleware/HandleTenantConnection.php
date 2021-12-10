@@ -21,18 +21,19 @@ class HandleTenantConnection
     {
         $idParameter = config('multitenancy.tenant-id-parameter', 'domain');
         $idColumn = config('multitenancy.tenant-id-column', 'domain');
-        $parameters = $request->route()->parameters();
-        if (isset($parameters[$idParameter])) {
-            $tenant = Tenant::where($idColumn, $parameters[$idParameter])->get()->first();
-            if ($tenant) {
-                $manager = new DatabaseManager();
-                $manager->setConnection($tenant);
-                DB::setDefaultConnection($manager->tenantConnectionName);
-                
-                return $next($request);
-            }
+        $tenantId = $request->route($idParameter);
+        
+        if (is_null($tenantId)) {
+            return abort(404);
         }
 
-        return abort(404);
+        $tenant = Tenant::where($idColumn, $tenantId)->get()->first();
+        if ($tenant) {
+            $manager = new DatabaseManager();
+            $manager->setConnection($tenant);
+            DB::setDefaultConnection($manager->tenantConnectionName);
+            
+            return $next($request);
+        }
     }
 }
