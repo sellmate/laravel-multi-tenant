@@ -43,7 +43,6 @@ class TenantDestroyCommand extends Command
      */
     public function handle()
     {
-        $this->checkTenant();
         $tenants = $this->getTenants();
 
         $progressBar = $this->output->createProgressBar(count($tenants));
@@ -51,7 +50,8 @@ class TenantDestroyCommand extends Command
         foreach ($tenants as $tenant) {
             $this->info("Deleting database and user for '{$tenant->name}'...");
 
-            $this->manager->setConnection($tenant);
+            $this->manager->setTenantConnection($tenant);
+            $this->checkEnv($this->manager->tenantConnectionName);
             $this->manager->destroyTenant();
 
             $tenant->setup_has_done = FALSE;

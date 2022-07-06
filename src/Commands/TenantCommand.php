@@ -17,7 +17,7 @@ trait TenantCommand
 
         if (Schema::hasTable(Tenant::getTableName())) {
             $qb = Tenant::where('setup_has_done', $setup);
-            if ($this->option('domain')) $qb->where(config('multitenancy.tenant-id-column', 'domain'), $this->option('domain'));
+            if ($this->option('domain')) $qb->where(config('multitenancy.tenant-id-column', 'domain'), $this->option('domain'));            
             $tenants = $qb->get();
 
             if (count($tenants) == 0) {
@@ -33,20 +33,21 @@ trait TenantCommand
 
     protected function setSystemDatabase()
     {
-        config(['passport.storage.database.connection' => $this->manager->systemConnectionName]);
-        if ($this->hasOption('database')) {
-            $this->input->setOption('database', $this->manager->systemConnectionName);
-        }
-        DB::setDefaultConnection($this->manager->systemConnectionName);
+        $this->setDefaultConnection($this->manager->systemConnectionName);
     }
 
     protected function setTenantDatabase()
     {
-        config(['passport.storage.database.connection' => $this->manager->tenantConnectionName]);
+        $this->setDefaultConnection($this->manager->tenantConnectionName);
+    }
+
+    protected function setDefaultConnection($connectionName)
+    {
+        config(['passport.storage.database.connection' => $connectionName]);
         if ($this->hasOption('database')) {
-            $this->input->setOption('database', $this->manager->tenantConnectionName);
+            $this->input->setOption('database', $connectionName);
         }
-        DB::setDefaultConnection($this->manager->tenantConnectionName);
+        DB::setDefaultConnection($connectionName);
     }
 
     /**
@@ -56,9 +57,21 @@ trait TenantCommand
      */
     protected function getMigrationPaths()
     {
-        $type = $this->option('tenant') ? 'tenant' : 'system';
-        $paths = parent::getMigrationPaths();
-        foreach ($paths as $path) $paths[] = $path . DIRECTORY_SEPARATOR . $type;
+        $database = $this->option('tenant') ? 'tenant' : 'system';
+        $database = $this->option('database') ?? $database;
+        $withoutPassportConfig = Config('multitenancy.without-root', []);        
+        $withoutRoot = $this->option('without-root') || in_array($database,$withoutPassportConfig);
+        
+        if($this->option('without-root') && !in_array($database,$withoutPassportConfig)){
+            $this->warn('Database not in without-root config. Recommend to add database to without-root config.');
+        }
+        
+        $paths = [];
+        
+        foreach (parent::getMigrationPaths() as $path){
+            if(!$withoutRoot) $paths[] = $path;
+            $paths[] = $path . DIRECTORY_SEPARATOR . $database;
+        }
 
         return $paths;
     }

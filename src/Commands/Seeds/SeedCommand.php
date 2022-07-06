@@ -39,7 +39,7 @@ class SeedCommand extends BaseCommand
                 $this->info('');
                 $this->info("Seeding to '{$tenant->name}'...");
 
-                $manager->setConnection($tenant);
+                $manager->setTenantConnection($tenant);
                 $this->resolver->setDefaultConnection($manager->tenantConnectionName);
 
                 Model::unguarded(function () {

@@ -46,13 +46,12 @@ class TenantSetupCommand extends Command
      */
     public function handle()
     {
-        $this->checkTenant();
         $tenants = $this->getTenants(FALSE);
         $progressBar = $this->output->createProgressBar(count($tenants));
         foreach ($tenants as $tenant) {
             $this->info("Setting up database for '{$tenant->name}'...");
 
-            $this->manager->setConnection($tenant);
+            $this->manager->setTenantConnection($tenant);
             $this->manager->setupTenant();
 
             if ($this->option('migrate')) {

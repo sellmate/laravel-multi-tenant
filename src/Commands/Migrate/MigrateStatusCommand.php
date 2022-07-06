@@ -35,7 +35,7 @@ class MigrateStatusCommand extends StatusCommand
             $tenants = $this->getTenants();
             $this->setTenantDatabase();
             foreach ($tenants as $tenant) {
-                $this->manager->setConnection($tenant);
+                $this->manager->setTenantConnection($tenant);
                 $this->info("Migration status for '{$tenant->name}'");
                 parent::handle();
                 $this->info('');

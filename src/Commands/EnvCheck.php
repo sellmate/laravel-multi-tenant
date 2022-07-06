@@ -15,27 +15,34 @@ trait EnvCheck
 {
     protected DatabaseManager $manager;
 
-    protected function checkSystem()
+    protected function checkEnv($database = null)
     {
-        $systemConfig = Config::get('database.connections.'.$this->manager->systemConnectionName);
-        $this->checkConfig($systemConfig);
+        $database = $database ?? $this->option('database');
+
+        $checkPassword = true;
+        
+        if(!$database) {
+            if ($this->option('tenant')) {
+                $database = $this->manager->tenantConnectionName;
+                $checkPassword = false;
+            }else{
+                $database = $this->manager->systemConnectionName;
+            }
+        }
+
+        $this->checkDatabase($database, $checkPassword);
     }
 
-    protected function checkTenant()
+    protected function checkDatabase($database, $checkPassword = true)
     {
-        $tenantAdminConfig = Config::get('database.connections.'.$this->manager->tenantAdminConnectionName);
-        $tenantConfig = Config::get('database.connections.'.$this->manager->tenantConnectionName);
-        $this->checkConfig($tenantConfig, false);
-    }
+        $config = Config::get('database.connections.'.$database);
 
-    private function checkConfig($config, $checkPassword = true)
-    {
         $prodEnv = Config::get('app.env') === 'production';
         try {
             if ($prodEnv) {
                 $this->warn('운영환경에서 명령이 수행됩니다.');
                 if ($checkPassword) {
-                    $password = $this->secret('대상 DB의 접속계정 비밀번호를 입력하세요');
+                    $password = $this->secret($database . ' connection의 접속계정 비밀번호를 입력하세요');
                     if ($config['password'] !== $password) {
                         throw new Exception('비밀번호가 일치하지 않습니다', 1);
                     }

@@ -30,6 +30,7 @@ class MultiTenantServiceProvider extends ServiceProvider
             __DIR__.'/../../config/multitenancy.php' => config_path('multitenancy.php'),
             __DIR__.'/../../database/migrations/' => database_path('migrations'),
             __DIR__.'/../../database/Tenant.php' => app_path('Models/System/Tenant.php'),
+            __DIR__.'/../../database/TenantServers.php' => app_path('Models/System/TenantServers.php'),
             __DIR__.'/../Commands/stubs/model.stub' => base_path('stubs/model.stub'),
             __DIR__.'/../Commands/stubs/model.pivot.stub' => base_path('stubs/model.pivot.stub'),
             __DIR__.'/../Commands/Seeds/stubs/seeder.stub' => base_path('stubs/seeder.stub'),

@@ -52,7 +52,7 @@ class InstallCommand extends BaseInstallCommand
             $this->setTenantDatabase();
             $progressBar = $this->output->createProgressBar(count($tenants));
             foreach ($tenants as $tenant) {
-                $this->manager->setConnection($tenant);
+                $this->manager->setTenantConnection($tenant);
                 $this->info("Install passport clients for '{$tenant->name}'...");
                 $progressBar->advance();
                 $tenantOptions = ['--tenant' => true];

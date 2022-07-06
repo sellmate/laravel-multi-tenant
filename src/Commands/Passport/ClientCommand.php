@@ -53,7 +53,7 @@ class ClientCommand extends BaseClientCommand
             $this->setTenantDatabase();
             $progressBar = $this->output->createProgressBar(count($tenants));
             foreach ($tenants as $tenant) {
-                $this->manager->setConnection($tenant);
+                $this->manager->setTenantConnection($tenant);
                 $this->info("Create passport client for '{$tenant->name}'...");
                 $progressBar->advance();
                 parent::handle($clients);

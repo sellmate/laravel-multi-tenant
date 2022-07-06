@@ -32,7 +32,8 @@ class MigrateRefreshCommand extends RefreshCommand
             $progressBar = $this->output->createProgressBar(count($tenants));
             $this->setTenantDatabase();
             foreach ($tenants as $tenant) {
-                $this->manager->setConnection($tenant);
+                $this->manager->setTenantConnection($tenant);
+                $this->checkEnv($this->manager->tenantConnectionName);
                 $this->info("Refreshing migrations for '{$tenant->name}'...");
                 
                 $domain = $tenant->domain;
@@ -82,7 +83,9 @@ class MigrateRefreshCommand extends RefreshCommand
                 $this->info("  Migrations for '{$tenant->name}' refreshed.");
             }
         } else {
-            $this->setSystemDatabase();
+            $database = $this->option('database') ?? 'system';
+            $this->checkEnv($database);
+            $this->setDefaultConnection($database);
             parent::handle();
         }
     }
@@ -96,7 +99,8 @@ class MigrateRefreshCommand extends RefreshCommand
     {
         return array_merge([
             ['tenant', 'T', InputOption::VALUE_NONE, "Reset and re-run all migrations for tenant database."],
-            ['domain', NULL, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."]
+            ['domain', NULL, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
+            ['without-root', NULL, InputOption::VALUE_OPTIONAL, "Run migrations without root migrations. Migrate only path with database name."],
         ], parent::getOptions());
     }
 }

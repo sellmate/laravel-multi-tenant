@@ -18,12 +18,15 @@ class MigrateMakeCommand extends BaseCommand
         {--realpath : Indicate any provided migration file paths are pre-resolved absolute paths}
         {--fullpath : Output the full path of the migration}
         {--S|system : Create migration for system database. }
-        {--T|tenant : Create migration for tenant databases. }';
+        {--T|tenant : Create migration for tenant databases. }
+        {--database= : Create migration for databases. }';
 
     protected function getMigrationPath()
     {
         $path = parent::getMigrationPath();
-        if ($this->input->getOption('system')) {
+        if($this->input->getOption('database')){
+            $path .= DIRECTORY_SEPARATOR.$this->input->getOption('database');
+        }else if ($this->input->getOption('system')) {
             $path .= DIRECTORY_SEPARATOR.'system';
         } elseif ($this->input->getOption('tenant')) {
             $path .= DIRECTORY_SEPARATOR.'tenant';
