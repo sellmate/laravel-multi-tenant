@@ -32,7 +32,6 @@ class MigrateInstallCommand extends InstallCommand
      */
     public function handle()
     {
-        echo 'install';
         DB::setDefaultConnection($this->manager->systemConnectionName);
         
         if ($this->option('tenant')) {
