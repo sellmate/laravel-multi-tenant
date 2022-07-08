@@ -46,7 +46,7 @@ class TenantSetupCommand extends Command
      */
     public function handle()
     {
-        $tenants = $this->getTenants(FALSE);
+        $tenants = $this->getTenants(false);
         $progressBar = $this->output->createProgressBar(count($tenants));
         foreach ($tenants as $tenant) {
             $this->info("Setting up database for '{$tenant->name}'...");
@@ -56,13 +56,13 @@ class TenantSetupCommand extends Command
 
             if ($this->option('migrate')) {
                 $this->call('migrate', [
-                    '--tenant' => TRUE,
+                    '--tenant' => true,
                     '--domain' => $tenant->domain,
-                    '--force' => TRUE
+                    '--force' => true,
                 ]);
             }
 
-            $tenant->setup_has_done = TRUE;
+            $tenant->setup_has_done = true;
             $tenant->save();
 
             $progressBar->advance();

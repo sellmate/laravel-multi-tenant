@@ -54,7 +54,7 @@ class TenantDestroyCommand extends Command
             $this->checkEnv($this->manager->tenantConnectionName);
             $this->manager->destroyTenant();
 
-            $tenant->setup_has_done = FALSE;
+            $tenant->setup_has_done = false;
             $tenant->save();
 
             $progressBar->advance();

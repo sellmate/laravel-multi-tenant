@@ -11,13 +11,16 @@ trait TenantCommand
 {
     protected DatabaseManager $manager;
 
-    protected function getTenants($setup = TRUE)
+    protected function getTenants($setup = true)
     {
         DB::setDefaultConnection($this->manager->systemConnectionName);
 
         if (Schema::hasTable(Tenant::getTableName())) {
             $qb = Tenant::where('setup_has_done', $setup);
-            if ($this->option('domain')) $qb->where(config('multitenancy.tenant-id-column', 'domain'), $this->option('domain'));            
+            if ($this->option('domain')) {
+                $qb->where(config('multitenancy.tenant-id-column', 'domain'), $this->option('domain'));
+            }
+
             $tenants = $qb->get();
 
             if (count($tenants) == 0) {
@@ -59,17 +62,20 @@ trait TenantCommand
     {
         $database = $this->option('tenant') ? 'tenant' : 'system';
         $database = $this->option('database') ?? $database;
-        $withoutPassportConfig = Config('multitenancy.without-root', []);        
-        $withoutRoot = $this->option('without-root') || in_array($database,$withoutPassportConfig);
-        
-        if($this->option('without-root') && !in_array($database,$withoutPassportConfig)){
+        $withoutPassportConfig = Config('multitenancy.without-root', []);
+        $withoutRoot = $this->option('without-root') || in_array($database, $withoutPassportConfig);
+
+        if ($this->option('without-root') && !in_array($database, $withoutPassportConfig)) {
             $this->warn('Database not in without-root config. Recommend to add database to without-root config.');
         }
-        
+
         $paths = [];
-        
-        foreach (parent::getMigrationPaths() as $path){
-            if(!$withoutRoot) $paths[] = $path;
+
+        foreach (parent::getMigrationPaths() as $path) {
+            if (!$withoutRoot) {
+                $paths[] = $path;
+            }
+
             $paths[] = $path . DIRECTORY_SEPARATOR . $database;
         }
 

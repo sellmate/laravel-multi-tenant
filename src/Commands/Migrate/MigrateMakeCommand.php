@@ -24,14 +24,16 @@ class MigrateMakeCommand extends BaseCommand
     protected function getMigrationPath()
     {
         $path = parent::getMigrationPath();
-        if($this->input->getOption('database')){
-            $path .= DIRECTORY_SEPARATOR.$this->input->getOption('database');
-        }else if ($this->input->getOption('system')) {
-            $path .= DIRECTORY_SEPARATOR.'system';
+        if ($this->input->getOption('database')) {
+            $path .= DIRECTORY_SEPARATOR . $this->input->getOption('database');
+        } else if ($this->input->getOption('system')) {
+            $path .= DIRECTORY_SEPARATOR . 'system';
         } elseif ($this->input->getOption('tenant')) {
-            $path .= DIRECTORY_SEPARATOR.'tenant';
+            $path .= DIRECTORY_SEPARATOR . 'tenant';
         }
-        if (!file_exists($path) || !is_dir($path)) mkdir($path);
+        if (!file_exists($path) || !is_dir($path)) {
+            mkdir($path);
+        }
 
         return $path;
     }

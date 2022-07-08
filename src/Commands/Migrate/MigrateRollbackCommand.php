@@ -12,7 +12,7 @@ use Symfony\Component\Console\Input\InputOption;
 class MigrateRollbackCommand extends RollbackCommand
 {
     use TenantCommand, EnvCheck;
-    
+
     /**
      * Create a new migration rollback command instance.
      *
@@ -35,7 +35,7 @@ class MigrateRollbackCommand extends RollbackCommand
     {
         DB::setDefaultConnection($this->manager->systemConnectionName);
 
-        if ($this->option('tenant')) {            
+        if ($this->option('tenant')) {
             $tenants = $this->getTenants();
             $progressBar = $this->output->createProgressBar(count($tenants));
             $this->setTenantDatabase();
@@ -48,7 +48,7 @@ class MigrateRollbackCommand extends RollbackCommand
                 parent::handle();
             }
         } else {
-            $database = $this->option('database') ?? 'system';            
+            $database = $this->option('database') ?? 'system';
             $this->setDefaultConnection($database);
             $this->checkEnv($database);
             parent::handle();
@@ -64,8 +64,8 @@ class MigrateRollbackCommand extends RollbackCommand
     {
         return array_merge([
             ['tenant', 'T', InputOption::VALUE_NONE, "Rollback the last database migration for tenant database."],
-            ['domain', NULL, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
-            ['without-root', NULL, InputOption::VALUE_OPTIONAL, "Run migrations without root migrations. Migrate only path with database name."],
+            ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
+            ['without-root', null, InputOption::VALUE_OPTIONAL, "Run migrations without root migrations. Migrate only path with database name."],
         ], parent::getOptions());
     }
 }

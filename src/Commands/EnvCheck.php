@@ -20,12 +20,12 @@ trait EnvCheck
         $database = $database ?? $this->option('database');
 
         $checkPassword = true;
-        
-        if(!$database) {
+
+        if (!$database) {
             if ($this->option('tenant')) {
                 $database = $this->manager->tenantConnectionName;
                 $checkPassword = false;
-            }else{
+            } else {
                 $database = $this->manager->systemConnectionName;
             }
         }
@@ -35,7 +35,7 @@ trait EnvCheck
 
     protected function checkDatabase($database, $checkPassword = true)
     {
-        $config = Config::get('database.connections.'.$database);
+        $config = Config::get('database.connections.' . $database);
 
         $prodEnv = Config::get('app.env') === 'production';
         try {

@@ -18,7 +18,7 @@ class SeedCommand extends BaseCommand
      */
     public function handle()
     {
-        if (! $this->confirmToProceed()) {
+        if (!$this->confirmToProceed()) {
             return 1;
         }
 
@@ -28,12 +28,17 @@ class SeedCommand extends BaseCommand
         if ($this->input->getOption('tenant')) {
 
             $domain = $this->input->getOption('domain') ?: 'all';
-            if ($domain == 'all') $tenants = Tenant::all();
-            else $tenants = Tenant::where('domain', $domain)->get();
+            if ($domain == 'all') {
+                $tenants = Tenant::all();
+            } else {
+                $tenants = Tenant::where('domain', $domain)->get();
+            }
 
             $drawBar = (count($tenants) > 1);
 
-            if ($drawBar) $bar = $this->output->createProgressBar(count($tenants));
+            if ($drawBar) {
+                $bar = $this->output->createProgressBar(count($tenants));
+            }
 
             foreach ($tenants as $tenant) {
                 $this->info('');
@@ -46,10 +51,15 @@ class SeedCommand extends BaseCommand
                     $this->getSeeder()->__invoke();
                 });
 
-                if ($drawBar) $bar->advance();
+                if ($drawBar) {
+                    $bar->advance();
+                }
+
                 $this->info(($drawBar ? '  ' : '') . "Seed '{$tenant->name}' succeed.");
             }
-            if ($drawBar) $bar->finish();
+            if ($drawBar) {
+                $bar->finish();
+            }
 
         } else {
 
@@ -61,7 +71,7 @@ class SeedCommand extends BaseCommand
 
         }
     }
-    
+
     /**
      * Get the console command options.
      *
@@ -71,7 +81,7 @@ class SeedCommand extends BaseCommand
     {
         return array_merge(parent::getOptions(), [
             ['tenant', 'T', InputOption::VALUE_NONE, "Seed the database with records for tenant database."],
-            ['domain', NULL, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."]
+            ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
         ]);
     }
 }

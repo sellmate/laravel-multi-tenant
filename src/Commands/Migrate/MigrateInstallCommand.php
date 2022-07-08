@@ -33,7 +33,7 @@ class MigrateInstallCommand extends InstallCommand
     public function handle()
     {
         DB::setDefaultConnection($this->manager->systemConnectionName);
-        
+
         if ($this->option('tenant')) {
             $tenants = $this->getTenants();
             $progressBar = $this->output->createProgressBar(count($tenants));
@@ -62,8 +62,8 @@ class MigrateInstallCommand extends InstallCommand
     {
         return array_merge([
             ['tenant', 'T', InputOption::VALUE_NONE, "Create the migration repository for tenant database."],
-            ['domain', NULL, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
-            ['without-root', NULL, InputOption::VALUE_OPTIONAL, "Run migrations without root migrations. Migrate only path with database name."],
+            ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
+            ['without-root', null, InputOption::VALUE_OPTIONAL, "Run migrations without root migrations. Migrate only path with database name."],
         ], parent::getOptions());
     }
 }

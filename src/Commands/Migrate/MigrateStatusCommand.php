@@ -23,7 +23,7 @@ class MigrateStatusCommand extends StatusCommand
 
         $this->manager = new DatabaseManager();
     }
-    
+
     /**
      * Execute the console command.
      *
@@ -55,7 +55,7 @@ class MigrateStatusCommand extends StatusCommand
     {
         return array_merge([
             ['tenant', 'T', InputOption::VALUE_NONE, "Show the status of each migration for tenant database. '--database' option will be ignored. use '--domain' instead."],
-            ['domain', NULL, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."]
+            ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
         ], parent::getOptions());
     }
 }
