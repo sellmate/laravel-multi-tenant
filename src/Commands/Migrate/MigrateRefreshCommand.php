@@ -25,16 +25,19 @@ class MigrateRefreshCommand extends RefreshCommand
      */
     public function handle()
     {
-        if (! $this->confirmToProceed()) return;
+        if (!$this->confirmToProceed()) {
+            return;
+        }
 
         if ($this->input->getOption('tenant')) {
             $tenants = $this->getTenants();
             $progressBar = $this->output->createProgressBar(count($tenants));
             $this->setTenantDatabase();
             foreach ($tenants as $tenant) {
-                $this->manager->setConnection($tenant);
+                $this->manager->setTenantConnection($tenant);
+                $this->checkEnv($this->manager->tenantConnectionName);
                 $this->info("Refreshing migrations for '{$tenant->name}'...");
-                
+
                 $domain = $tenant->domain;
 
                 $path = $this->input->getOption('path');
@@ -46,7 +49,7 @@ class MigrateRefreshCommand extends RefreshCommand
 
                 if ($step > 0) {
                     $this->call('migrate:rollback', [
-                        '--tenant' => TRUE,
+                        '--tenant' => true,
                         '--domain' => $domain,
                         '--path' => $path,
                         '--realpath' => $this->input->getOption('realpath'),
@@ -55,7 +58,7 @@ class MigrateRefreshCommand extends RefreshCommand
                     ]);
                 } else {
                     $this->call('migrate:reset', [
-                        '--tenant' => TRUE,
+                        '--tenant' => true,
                         '--domain' => $domain,
                         '--path' => $path,
                         '--realpath' => $this->input->getOption('realpath'),
@@ -67,7 +70,7 @@ class MigrateRefreshCommand extends RefreshCommand
                 // the migration commands and just provides a convenient wrapper to execute
                 // them in succession. We'll also see if we need to re-seed the database.
                 $this->call('migrate', [
-                    '--tenant' => TRUE,
+                    '--tenant' => true,
                     '--domain' => $domain,
                     '--path' => $path,
                     '--realpath' => $this->input->getOption('realpath'),
@@ -82,7 +85,9 @@ class MigrateRefreshCommand extends RefreshCommand
                 $this->info("  Migrations for '{$tenant->name}' refreshed.");
             }
         } else {
-            $this->setSystemDatabase();
+            $database = $this->option('database') ?? 'system';
+            $this->checkEnv($database);
+            $this->setDefaultConnection($database);
             parent::handle();
         }
     }
@@ -96,7 +101,8 @@ class MigrateRefreshCommand extends RefreshCommand
     {
         return array_merge([
             ['tenant', 'T', InputOption::VALUE_NONE, "Reset and re-run all migrations for tenant database."],
-            ['domain', NULL, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."]
+            ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
+            ['without-root', null, InputOption::VALUE_OPTIONAL, "Run migrations without root migrations. Migrate only path with database name."],
         ], parent::getOptions());
     }
 }

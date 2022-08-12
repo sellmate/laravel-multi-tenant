@@ -18,9 +18,10 @@ class MigrateCommand extends BaseMigrateCommand
      *
      * @var string
      */
-    protected $signature = "migrate 
+    protected $signature = "migrate
                 {--T|tenant : Run migrations for tenant. '--database' option will be ignored. use '--domain' instead.}
                 {--domain= : The domain for tenant. 'all' or null value for all tenants.}
+                {--without-root : Run migrations without root migrations. Migrate only path with database name.}
                 {--database= : The database connection to use}
                 {--force : Force the operation to run when in production}
                 {--path=* : The path(s) to the migrations files to be executed}
@@ -53,20 +54,21 @@ class MigrateCommand extends BaseMigrateCommand
     public function handle()
     {
         if ($this->option('tenant')) {
-            $this->checkTenant();
             $tenants = $this->getTenants();
             $progressBar = $this->output->createProgressBar(count($tenants));
             $this->setTenantDatabase();
             foreach ($tenants as $tenant) {
-                $this->manager->setConnection($tenant);
+                $this->manager->setTenantConnection($tenant);
+                $this->checkEnv($this->manager->tenantConnectionName);
                 $this->info("Migrating for '{$tenant->name}'...");
                 $progressBar->advance();
                 $this->newLine();
                 parent::handle();
             }
         } else {
-            $this->checkSystem();
-            $this->setSystemDatabase();
+            $database = $this->option('database') ?? 'system';
+            $this->setDefaultConnection($database);
+            $this->checkEnv($database);
             parent::handle();
         }
     }
@@ -79,11 +81,11 @@ class MigrateCommand extends BaseMigrateCommand
     protected function prepareDatabase()
     {
         // INFO: 스키마 상태 불러오기 순서를 변경해서 migrations 테이블을 불필요하게 만들었다 지우는 과정 생략
-        if (! $this->migrator->hasRunAnyMigrations() && ! $this->option('pretend')) {
+        if (!$this->migrator->hasRunAnyMigrations() && !$this->option('pretend')) {
             $this->loadSchemaState();
         }
 
-        if (! $this->migrator->repositoryExists()) {
+        if (!$this->migrator->repositoryExists()) {
             $this->call('migrate:install', array_filter([
                 '--database' => $this->option('database'),
             ]));
@@ -102,11 +104,11 @@ class MigrateCommand extends BaseMigrateCommand
         // First, we will make sure that the connection supports schema loading and that
         // the schema file exists before we proceed any further. If not, we will just
         // continue with the standard migration operation as normal without errors.
-        if (! is_file($path = $this->schemaPath($connection))) {
+        if (!is_file($path = $this->schemaPath($connection))) {
             return;
         }
 
-        $this->line('<info>Loading stored database schema:</info> '.$path);
+        $this->line('<info>Loading stored database schema:</info> ' . $path);
 
         $startTime = microtime(true);
 
@@ -123,6 +125,6 @@ class MigrateCommand extends BaseMigrateCommand
             new SchemaLoaded($connection, $path)
         );
 
-        $this->line('<info>Loaded stored database schema.</info> ('.$runTime.'ms)');
+        $this->line('<info>Loaded stored database schema.</info> (' . $runTime . 'ms)');
     }
 }

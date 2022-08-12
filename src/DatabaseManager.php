@@ -23,10 +23,10 @@ class DatabaseManager
         $this->systemConnectionName = Config('multitenancy.system-connection', 'system');
         $this->tenantConnectionName = Config('multitenancy.tenant-connection', 'tenant');
         $this->tenantAdminConnectionName = Config('multitenancy.tenant-admin-connection', 'tenant_admin');
-        if (!is_null($tenant)) $this->setConnection($tenant);
+        if (!is_null($tenant)) $this->setTenantConnection($tenant);
     }
 
-    public function setConnection(Tenant $tenant)
+    public function setTenantConnection(Tenant $tenant)
     {
         if (!is_null($tenant)) $this->tenant = $tenant;
         DB::purge($this->tenantAdminConnectionName);

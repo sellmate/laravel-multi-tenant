@@ -27,12 +27,12 @@ class MultiTenantServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->publishes([
-            __DIR__.'/../../config/multitenancy.php' => config_path('multitenancy.php'),
-            __DIR__.'/../../database/migrations/' => database_path('migrations'),
-            __DIR__.'/../../database/Tenant.php' => app_path('Models/System/Tenant.php'),
-            __DIR__.'/../Commands/stubs/model.stub' => base_path('stubs/model.stub'),
-            __DIR__.'/../Commands/stubs/model.pivot.stub' => base_path('stubs/model.pivot.stub'),
-            __DIR__.'/../Commands/Seeds/stubs/seeder.stub' => base_path('stubs/seeder.stub'),
+            __DIR__ . '/../../config/multitenancy.php' => config_path('multitenancy.php'),
+            __DIR__ . '/../../database/migrations/' => database_path('migrations'),
+            __DIR__ . '/../../database/Tenant.php' => app_path('Models/System/Tenant.php'),
+            __DIR__ . '/../Commands/stubs/model.stub' => base_path('stubs/model.stub'),
+            __DIR__ . '/../Commands/stubs/model.pivot.stub' => base_path('stubs/model.pivot.stub'),
+            __DIR__ . '/../Commands/Seeds/stubs/seeder.stub' => base_path('stubs/seeder.stub'),
         ]);
     }
 
@@ -55,7 +55,7 @@ class MultiTenantServiceProvider extends ServiceProvider
         $this->app->extend('command.migrate.install', function ($object, $app) {
             return new MigrateInstallCommand($app['migration.repository']);
         });
-        
+
         $this->app->extend('command.migrate.make', function ($object, $app) {
             return new MigrateMakeCommand($app['migration.creator'], $app['composer']);
         });
