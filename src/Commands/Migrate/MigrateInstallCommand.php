@@ -33,23 +33,22 @@ class MigrateInstallCommand extends InstallCommand
     public function handle()
     {
         DB::setDefaultConnection($this->manager->systemConnectionName);
-        
+
         if ($this->option('tenant')) {
             $tenants = $this->getTenants();
             $progressBar = $this->output->createProgressBar(count($tenants));
             $this->setTenantDatabase();
             foreach ($tenants as $tenant) {
-                $this->manager->setConnection($tenant);
+                $this->manager->setTenantConnection($tenant);
+                // $this->checkEnv($this->manager->tenantConnectionName);
                 $this->info("Creating migration table for '{$tenant->name}' database...");
                 $progressBar->advance();
                 parent::handle();
             }
         } else {
-            if ($this->option('database') == $this->manager->tenantConnectionName) {
-                $this->setTenantDatabase();
-            } else {
-                $this->setSystemDatabase();
-            }
+            $database = $this->option('database') ?? 'system';
+            $this->setDefaultConnection($database);
+            // $this->checkEnv($database);
             parent::handle();
         }
     }
@@ -63,7 +62,8 @@ class MigrateInstallCommand extends InstallCommand
     {
         return array_merge([
             ['tenant', 'T', InputOption::VALUE_NONE, "Create the migration repository for tenant database."],
-            ['domain', NULL, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
+            ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
+            ['without-root', null, InputOption::VALUE_OPTIONAL, "Run migrations without root migrations. Migrate only path with database name."],
         ], parent::getOptions());
     }
 }

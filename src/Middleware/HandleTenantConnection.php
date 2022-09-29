@@ -22,7 +22,7 @@ class HandleTenantConnection
         $idParameter = config('multitenancy.tenant-id-parameter', 'domain');
         $idColumn = config('multitenancy.tenant-id-column', 'domain');
         $tenantId = $request->route($idParameter);
-        
+
         if (is_null($tenantId)) {
             return abort(404);
         }
@@ -30,9 +30,9 @@ class HandleTenantConnection
         $tenant = Tenant::where($idColumn, $tenantId)->get()->first();
         if ($tenant) {
             $manager = new DatabaseManager();
-            $manager->setConnection($tenant);
+            $manager->setTenantConnection($tenant);
             DB::setDefaultConnection($manager->tenantConnectionName);
-            
+
             return $next($request);
         }
     }
