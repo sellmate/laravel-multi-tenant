@@ -54,7 +54,7 @@ trait EnvCheck
                     Config::set('migration_admin_authenticated', 1);
                 }
             // }
-            } elseif (Str::startsWith($config['host'], '10.1.')) {
+            } elseif (!in_array($config['host'], config('multitenancy.dev-host-list', []))) {
                 throw new Exception('개발 환경에서 운영DB에 대한 작업을 수행할 수 없습니다!', 2);
             }
         } catch (\Throwable $th) {

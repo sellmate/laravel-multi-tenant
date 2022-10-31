@@ -8,4 +8,5 @@ return [
     'tenant-id-column' => env('MULTITENANCY_TENANT_ID_COLUMN', 'domain'),
     'tenant-id-parameter' => env('MULTITENANCY_TENANT_ID_PARAMETER', 'domain'),
     'without-root' => [env('MULTITENANCY_TENANT_ADMIN_CONNECTION', 'tenant_admin')], //Migrate only path with database name
+    'dev-host-list' => explode(',', env('MULTITENANCY_TENANT_DEV_HOST_LIST')),
 ];
