@@ -47,44 +47,61 @@ class MultiTenantServiceProvider extends ServiceProvider
             TenantSetupCommand::class,
             TenantDestroyCommand::class,
         ]);
+        
+        $commands = [
+            // Illuminate\Database\MigrationServiceProvider
+            'Migrate' => \Illuminate\Database\Console\Migrations\MigrateCommand::class,
+            'MigrateFresh' => \Illuminate\Database\Console\Migrations\FreshCommand::class,
+            'MigrateInstall' => \Illuminate\Database\Console\Migrations\InstallCommand::class,
+            'MigrateRefresh' => \Illuminate\Database\Console\Migrations\RefreshCommand::class,
+            'MigrateReset' => \Illuminate\Database\Console\Migrations\ResetCommand::class,
+            'MigrateRollback' => \Illuminate\Database\Console\Migrations\RollbackCommand::class,
+            'MigrateStatus' => \Illuminate\Database\Console\Migrations\StatusCommand::class,
+            'MigrateMake' => \Illuminate\Database\Console\Migrations\MigrateMakeCommand::class,
 
-        $this->app->extend('command.migrate', function ($object, $app) {
+            // Illuminate\Foundation\Providers\ArtisanServiceProvider.php
+            'Seed' => \Illuminate\Database\Console\Seeds\SeedCommand::class,
+            'SeederMake' => \Illuminate\Database\Console\Seeds\SeederMakeCommand::class,
+            'ModelMake' => \Illuminate\Foundation\Console\ModelMakeCommand::class,
+        ];
+
+        $this->app->extend($commands['Migrate'], function ($object, $app) {
             return new MigrateCommand($app['migrator'], $app[Dispatcher::class]);
         });
 
-        $this->app->extend('command.migrate.install', function ($object, $app) {
+        $this->app->extend($commands['MigrateInstall'], function ($object, $app) {
             return new MigrateInstallCommand($app['migration.repository']);
         });
 
-        $this->app->extend('command.migrate.make', function ($object, $app) {
+        $this->app->extend($commands['MigrateMake'], function ($object, $app) {
             return new MigrateMakeCommand($app['migration.creator'], $app['composer']);
         });
 
-        $this->app->extend('command.migrate.refresh', function ($object, $app) {
+        $this->app->extend($commands['MigrateRefresh'], function ($object, $app) {
             return new MigrateRefreshCommand;
         });
 
-        $this->app->extend('command.migrate.reset', function ($object, $app) {
+        $this->app->extend($commands['MigrateReset'], function ($object, $app) {
             return new MigrateResetCommand($app['migrator']);
         });
 
-        $this->app->extend('command.migrate.rollback', function ($object, $app) {
+        $this->app->extend($commands['MigrateRollback'], function ($object, $app) {
             return new MigrateRollbackCommand($app['migrator']);
         });
 
-        $this->app->extend('command.migrate.status', function ($object, $app) {
+        $this->app->extend($commands['MigrateStatus'], function ($object, $app) {
             return new MigrateStatusCommand($app['migrator']);
         });
 
-        $this->app->extend('command.seed', function ($object, $app) {
+        $this->app->extend($commands['Seed'], function ($object, $app) {
             return new SeedCommand($app['db']);
         });
 
-        $this->app->extend('command.seeder.make', function ($object, $app) {
+        $this->app->extend($commands['SeederMake'], function ($object, $app) {
             return new SeederMakeCommand($app['files'], $app['composer']);
         });
 
-        $this->app->extend('command.model.make', function ($object, $app) {
+        $this->app->extend($commands['ModelMake'], function ($object, $app) {
             return new ModelMakeCommand($app['files']);
         });
     }
