@@ -53,6 +53,10 @@ class MigrateCommand extends BaseMigrateCommand
      */
     public function handle()
     {
+        // 병렬 테스트 수행시 시도되는 migration을 스킵하기
+        if (env('APP_ENV') == 'testing' && env('PARALLEL_TEST_SKIP_MIGRATIONS')) {
+            return;
+        }
         if ($this->option('tenant')) {
             $tenants = $this->getTenants();
             $progressBar = $this->output->createProgressBar(count($tenants));
