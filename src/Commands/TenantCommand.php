@@ -18,7 +18,7 @@ trait TenantCommand
         if (Schema::hasTable(Tenant::getTableName())) {
             $qb = Tenant::where('setup_has_done', $setup);
             if ($this->option('domain')) {
-                $qb->where(config('multitenancy.tenant-id-column', 'domain'), $this->option('domain'));
+                $qb->whereIn(config('multitenancy.tenant-id-column', 'domain'), explode(',', $this->option('domain')));
             }
 
             $tenants = $qb->get();
