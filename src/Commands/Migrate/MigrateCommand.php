@@ -29,7 +29,8 @@ class MigrateCommand extends BaseMigrateCommand
                 {--schema-path= : The path to a schema dump file}
                 {--pretend : Dump the SQL queries that would be run}
                 {--seed : Indicates if the seed task should be re-run}
-                {--step : Force the migrations to be run so they can be rolled back individually}";
+                {--step : Force the migrations to be run so they can be rolled back individually}
+                {--secret= : Secret for production}";
 
     protected DatabaseManager $manager;
 

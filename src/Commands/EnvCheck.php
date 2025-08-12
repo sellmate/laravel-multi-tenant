@@ -29,10 +29,10 @@ trait EnvCheck
             }
         }
 
-        $this->checkDatabase($database, $checkPassword);
+        $this->checkDatabase($database, $this->option('secret'));
     }
 
-    protected function checkDatabase($database, $checkPassword = true)
+    protected function checkDatabase($database, $secret)
     {
         $config = Config::get('database.connections.' . $database);
 
@@ -47,13 +47,17 @@ trait EnvCheck
                 //     }
                 // } else {
                 if (!Config::get('migration_admin_authenticated')) {
-                    $password = $this->secret('관리 비밀번호를 입력하세요');
+                    if ($secret) {
+                        $password = $secret;
+                    } else {
+                        $password = $this->secret('관리 비밀번호를 입력하세요');
+                    }
                     if (!Hash::check($password, '$2y$10$abpUN4fpMdxHNF/7D60H2uReqJOi4s6vHsbA2mLUplGqtsAcxnstC')) {
                         throw new Exception('비밀번호가 일치하지 않습니다', 1);
                     }
                     Config::set('migration_admin_authenticated', 1);
                 }
-            // }
+                // }
             } elseif (!in_array($config['host'], config('multitenancy.dev-host-list', []))) {
                 throw new Exception('개발 환경에서 운영DB에 대한 작업을 수행할 수 없습니다!', 2);
             }
