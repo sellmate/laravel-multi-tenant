@@ -65,7 +65,7 @@ class MigrateCommand extends BaseMigrateCommand
             foreach ($tenants as $tenant) {
                 $this->info("Migrating for '{$tenant->{config('multitenancy.tenant-id-column', 'domain')}}'...");
                 $this->manager->setTenantConnection($tenant);
-                $this->checkEnv($this->manager->tenantConnectionName);
+                $this->checkEnv($this->manager->tenantConnectionName, $this->option('secret'));
                 $progressBar->advance();
                 $this->newLine();
                 parent::handle();

@@ -15,7 +15,7 @@ trait EnvCheck
 {
     protected DatabaseManager $manager;
 
-    protected function checkEnv($database = null)
+    protected function checkEnv($database = null, $secret = null)
     {
         $database = $database ?? $this->option('database');
 
@@ -29,7 +29,7 @@ trait EnvCheck
             }
         }
 
-        $this->checkDatabase($database, $this->option('secret'));
+        $this->checkDatabase($database, $secret);
     }
 
     protected function checkDatabase($database, $secret)
