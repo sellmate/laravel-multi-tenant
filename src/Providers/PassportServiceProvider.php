@@ -19,23 +19,23 @@ class PassportServiceProvider extends BaseProvider
      */
     public function boot()
     {
-        $this->loadViewsFrom(__DIR__.'/../resources/views', 'passport');
+        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'passport');
 
         $this->deleteCookieOnLogout();
 
         if ($this->app->runningInConsole()) {
-            $this->registerMigrations();
+            // $this->registerMigrations();
 
             $this->publishes([
-                __DIR__.'/../database/migrations' => database_path('migrations'),
+                __DIR__ . '/../database/migrations' => database_path('migrations'),
             ], 'passport-migrations');
 
             $this->publishes([
-                __DIR__.'/../resources/views' => base_path('resources/views/vendor/passport'),
+                __DIR__ . '/../resources/views' => base_path('resources/views/vendor/passport'),
             ], 'passport-views');
 
             $this->publishes([
-                __DIR__.'/../config/passport.php' => config_path('passport.php'),
+                __DIR__ . '/../config/passport.php' => config_path('passport.php'),
             ], 'passport-config');
 
             $this->commands([
