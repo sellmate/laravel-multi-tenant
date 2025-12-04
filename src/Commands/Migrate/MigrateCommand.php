@@ -30,7 +30,8 @@ class MigrateCommand extends BaseMigrateCommand
                 {--pretend : Dump the SQL queries that would be run}
                 {--seed : Indicates if the seed task should be re-run}
                 {--step : Force the migrations to be run so they can be rolled back individually}
-                {--secret= : Secret for production}";
+                {--secret= : Secret for production}
+                {--graceful : Return a successful exit code even if an error occurs}";
 
     protected DatabaseManager $manager;
 
@@ -58,24 +59,41 @@ class MigrateCommand extends BaseMigrateCommand
         if (env('APP_ENV') == 'testing' && env('PARALLEL_TEST_SKIP_MIGRATIONS')) {
             return;
         }
-        if ($this->option('tenant')) {
-            $tenants = $this->getTenants();
-            $progressBar = $this->output->createProgressBar(count($tenants));
-            $this->setTenantDatabase();
-            foreach ($tenants as $tenant) {
-                $this->info("Migrating for '{$tenant->{config('multitenancy.tenant-id-column', 'domain')}}'...");
-                $this->manager->setTenantConnection($tenant);
-                $this->checkEnv($this->manager->tenantConnectionName, $this->option('secret'));
-                $progressBar->advance();
-                $this->newLine();
+
+        if (! $this->confirmToProceed()) {
+            return 1;
+        }
+
+        try {
+            if ($this->option('tenant')) {
+                $tenants = $this->getTenants();
+                $progressBar = $this->output->createProgressBar(count($tenants));
+                $this->setTenantDatabase();
+                foreach ($tenants as $tenant) {
+                    $this->info("Migrating for '{$tenant->{config('multitenancy.tenant-id-column', 'domain')}}'...");
+                    $this->manager->setTenantConnection($tenant);
+                    $this->checkEnv($this->manager->tenantConnectionName, $this->option('secret'));
+                    $progressBar->advance();
+                    $this->newLine();
+                    parent::handle();
+                }
+            } else {
+                $database = $this->option('database') ?? 'system';
+                $this->setDefaultConnection($database);
+                $this->checkEnv($database);
                 parent::handle();
             }
-        } else {
-            $database = $this->option('database') ?? 'system';
-            $this->setDefaultConnection($database);
-            $this->checkEnv($database);
-            parent::handle();
+        } catch (Throwable $e) {
+            if ($this->option('graceful')) {
+                $this->components->warn($e->getMessage());
+
+                return 0;
+            }
+
+            throw $e;
         }
+
+        return 0;
     }
 
     /**
