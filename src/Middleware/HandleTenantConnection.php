@@ -34,6 +34,8 @@ class HandleTenantConnection
             DB::setDefaultConnection($manager->tenantConnectionName);
 
             return $next($request);
+        } else {
+            return abort(404);
         }
     }
 }
