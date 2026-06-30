@@ -27,13 +27,15 @@ class HandleTenantConnection
             return abort(404);
         }
 
-        $tenant = Tenant::where($idColumn, $tenantId)->get()->first();
+        $tenant = Tenant::where($idColumn, $tenantId)->first();
         if ($tenant) {
             $manager = new DatabaseManager();
             $manager->setTenantConnection($tenant);
             DB::setDefaultConnection($manager->tenantConnectionName);
 
             return $next($request);
+        } else {
+            return abort(404);
         }
     }
 }
