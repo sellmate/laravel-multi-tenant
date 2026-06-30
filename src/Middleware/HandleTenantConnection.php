@@ -29,7 +29,7 @@ class HandleTenantConnection
 
         $tenant = Tenant::where($idColumn, $tenantId)->first();
         if ($tenant) {
-            $manager = new DatabaseManager();
+            $manager = app(DatabaseManager::class);
             $manager->setTenantConnection($tenant);
             DB::setDefaultConnection($manager->tenantConnectionName);
 
