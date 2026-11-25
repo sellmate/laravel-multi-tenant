@@ -6,6 +6,7 @@ use Laravel\Passport\Console\HashCommand as BaseHashCommand;
 use Sellmate\Laravel\MultiTenant\Commands\AddsTenantOptions;
 use Sellmate\Laravel\MultiTenant\Commands\TenantCommand;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
+use Sellmate\Laravel\MultiTenant\Exceptions\TenantCommandException;
 use Symfony\Component\Console\Input\InputOption;
 
 class HashCommand extends BaseHashCommand
@@ -38,8 +39,13 @@ class HashCommand extends BaseHashCommand
 
         $tenants = $this->getTenants();
 
-        // Confirm once for the whole run instead of once per tenant.
+        // Confirm once for the whole run instead of once per tenant. Without a terminal the prompt
+        // auto-declines, which would leave secrets unhashed behind a successful exit code.
         if (! $this->option('force')) {
+            if (! $this->input->isInteractive()) {
+                throw new TenantCommandException('passport:hash --tenant needs --force when it cannot prompt for confirmation.');
+            }
+
             if (! $this->components->confirm('Are you sure you want to hash all client secrets in every selected tenant? This cannot be undone.')) {
                 $this->components->warn('Not confirmed; no client secrets were hashed. Pass --force to run without the prompt.');
 

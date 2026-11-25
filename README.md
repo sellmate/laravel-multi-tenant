@@ -236,8 +236,11 @@ publish하지 않은 키도 패키지 기본값이 적용됩니다.
 1. **클라이언트 secret 해시.** Passport 13은 secret을 항상 해시로 검증하므로, 평문 secret이 남은 테넌트는 클라이언트 인증이 실패합니다.
 
    ```bash
-   php artisan passport:hash --tenant --domain=all
+   php artisan passport:hash --tenant --domain=all           # 한 번 확인을 묻습니다
+   php artisan passport:hash --tenant --domain=all --force   # 배포 스크립트처럼 묻지 못하는 환경
    ```
+
+   묻지 못하는 환경에서 `--force` 없이 실행하면 아무것도 해시하지 않고 실패(0이 아닌 종료 코드)합니다.
 
 2. **(선택) `oauth_clients` 스키마 변경.** 새 스키마는 하위 호환이라 필수는 아니지만, 정수 클라이언트 ID를 쓰면 가이드가 강하게 권장합니다(일부 토큰 요청이 401로 실패). 적용한다면 가이드의 마이그레이션(`owner_type`·`owner_id`, `redirect_uris`, `grant_types`)을 `database/migrations/tenant`에 두고 테넌트에 실행합니다. 컬럼을 지우는 되돌릴 수 없는 변경이니 백업 후 실행하세요. 더 이상 쓰지 않는 `oauth_personal_access_clients`도 같은 방식으로 지울 수 있습니다.
 

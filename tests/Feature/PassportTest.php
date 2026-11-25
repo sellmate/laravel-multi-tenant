@@ -12,6 +12,7 @@ use Mockery;
 use Sellmate\Laravel\MultiTenant\Commands\Passport\ClientCommand;
 use Sellmate\Laravel\MultiTenant\Commands\Passport\InstallCommand;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
+use Sellmate\Laravel\MultiTenant\Exceptions\TenantCommandException;
 use Sellmate\Laravel\MultiTenant\RefreshTokenRepository;
 use Sellmate\Laravel\MultiTenant\Tests\TestCase;
 
@@ -214,6 +215,16 @@ class PassportTest extends TestCase
             ->assertSuccessful();
 
         $this->assertSame('alpha-secret', $this->tenantDatabase('alpha')->table('oauth_clients')->value('secret'));
+    }
+
+    public function test_hash_with_tenant_fails_when_it_cannot_ask_for_confirmation(): void
+    {
+        $this->setUpTenants('alpha');
+        $this->insertPlaintextClient('alpha', 'alpha-secret');
+
+        $this->expectException(TenantCommandException::class);
+
+        \Illuminate\Support\Facades\Artisan::call('passport:hash', ['--tenant' => true, '--no-interaction' => true]);
     }
 
     public function test_purge_with_tenant_purges_only_the_selected_tenants(): void
