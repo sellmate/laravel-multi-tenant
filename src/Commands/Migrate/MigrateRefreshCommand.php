@@ -40,7 +40,11 @@ class MigrateRefreshCommand extends RefreshCommand
                 $this->checkEnv($this->manager->tenantConnectionName, $this->option('secret'));
                 $this->info("Refreshing migrations for '{$tenant->name}'...");
 
-                $domain = $tenant->domain;
+                $domain = $tenant->{config('multitenancy.tenant-id-column', 'domain')};
+
+                // The check above already authenticated this process (migration_admin_authenticated),
+                // which is what lets the nested commands run; --secret is forwarded only so they do not
+                // depend on that shortcut.
 
                 $path = $this->input->getOption('path');
 

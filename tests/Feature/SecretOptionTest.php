@@ -52,4 +52,28 @@ class SecretOptionTest extends TestCase
             $this->assertFileExists($this->tenantDatabaseFile('alpha'));
         }
     }
+
+    public function test_a_falsy_looking_secret_is_still_compared(): void
+    {
+        config(['app.env' => 'production']);
+
+        $this->expectException(TenantCommandException::class);
+        $this->expectExceptionMessage('비밀번호가 일치하지 않습니다');
+
+        Artisan::call('migrate:rollback', ['--force' => true, '--secret' => '0', '--no-interaction' => true]);
+    }
+
+    public function test_refresh_with_tenant_targets_tenants_by_the_configured_id_column(): void
+    {
+        $this->migrateSystemTenantsTable();
+        touch($this->tenantDatabaseFile('alpha'));
+        Tenant::create(['domain' => 'alpha', 'name' => 'Alpha Inc', 'db_host' => '127.0.0.1', 'setup_has_done' => true]);
+        config(['multitenancy.tenant-id-column' => 'name']);
+        $path = __DIR__ . '/../fixtures/migrations/ok';
+
+        $this->artisan('migrate:refresh', ['--tenant' => true, '--domain' => 'Alpha Inc', '--path' => $path, '--realpath' => true])
+            ->assertSuccessful();
+
+        $this->assertTrue($this->tenantDatabase('alpha')->getSchemaBuilder()->hasTable('widgets'));
+    }
 }
