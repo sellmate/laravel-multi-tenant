@@ -52,6 +52,12 @@ class PassportTest extends TestCase
             $this->assertTrue($install->getDefinition()->hasOption($option), "passport:install is missing --{$option}");
         }
         $this->assertFalse($install->getDefinition()->hasOption('uuids'));
+
+        $this->assertInstanceOf(\Sellmate\Laravel\MultiTenant\Commands\Passport\HashCommand::class, $commands['passport:hash']);
+        $this->assertInstanceOf(\Sellmate\Laravel\MultiTenant\Commands\Passport\PurgeCommand::class, $commands['passport:purge']);
+        foreach (['revoked', 'expired', 'hours', 'tenant', 'domain'] as $option) {
+            $this->assertTrue($commands['passport:purge']->getDefinition()->hasOption($option), "passport:purge is missing --{$option}");
+        }
     }
 
     public function test_client_command_without_tenant_writes_to_system_database(): void
@@ -146,6 +152,80 @@ class PassportTest extends TestCase
     public function test_oauth_routes_are_not_registered_outside_tenant_routes(): void
     {
         $this->assertFalse($this->app['router']->has('passport.token'));
+    }
+
+    private function insertPlaintextClient(string $domain, string $secret): void
+    {
+        $this->tenantDatabase($domain)->table('oauth_clients')->insert([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'name' => "{$domain} client",
+            'secret' => $secret,
+            'redirect_uris' => '[]',
+            'grant_types' => '["client_credentials"]',
+            'revoked' => false,
+        ]);
+    }
+
+    private function insertRevokedAccessToken(string $domain): void
+    {
+        $this->tenantDatabase($domain)->table('oauth_access_tokens')->insert([
+            'id' => "{$domain}-token",
+            'client_id' => (string) \Illuminate\Support\Str::uuid(),
+            'revoked' => true,
+        ]);
+    }
+
+    public function test_hash_with_tenant_hashes_only_the_selected_tenants_secrets(): void
+    {
+        $this->setUpTenants('alpha', 'beta');
+        $this->insertPlaintextClient('alpha', 'alpha-secret');
+        $this->insertPlaintextClient('beta', 'beta-secret');
+
+        $this->artisan('passport:hash', ['--tenant' => true, '--domain' => 'alpha', '--force' => true])->assertSuccessful();
+
+        $alphaSecret = $this->tenantDatabase('alpha')->table('oauth_clients')->value('secret');
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('alpha-secret', $alphaSecret));
+        $this->assertSame('beta-secret', $this->tenantDatabase('beta')->table('oauth_clients')->value('secret'));
+        $this->assertFalse(Schema::connection('system')->hasTable('oauth_clients'));
+    }
+
+    public function test_hash_with_tenant_asks_for_confirmation_once(): void
+    {
+        $this->setUpTenants('alpha', 'beta');
+        $this->insertPlaintextClient('alpha', 'alpha-secret');
+        $this->insertPlaintextClient('beta', 'beta-secret');
+
+        $this->artisan('passport:hash', ['--tenant' => true])
+            ->expectsConfirmation('Are you sure you want to hash all client secrets in every selected tenant? This cannot be undone.', 'yes')
+            ->assertSuccessful();
+
+        $this->assertNotSame('alpha-secret', $this->tenantDatabase('alpha')->table('oauth_clients')->value('secret'));
+        $this->assertNotSame('beta-secret', $this->tenantDatabase('beta')->table('oauth_clients')->value('secret'));
+    }
+
+    public function test_hash_with_tenant_does_nothing_when_not_confirmed(): void
+    {
+        $this->setUpTenants('alpha');
+        $this->insertPlaintextClient('alpha', 'alpha-secret');
+
+        $this->artisan('passport:hash', ['--tenant' => true])
+            ->expectsConfirmation('Are you sure you want to hash all client secrets in every selected tenant? This cannot be undone.', 'no')
+            ->expectsOutputToContain('no client secrets were hashed')
+            ->assertSuccessful();
+
+        $this->assertSame('alpha-secret', $this->tenantDatabase('alpha')->table('oauth_clients')->value('secret'));
+    }
+
+    public function test_purge_with_tenant_purges_only_the_selected_tenants(): void
+    {
+        $this->setUpTenants('alpha', 'beta');
+        $this->insertRevokedAccessToken('alpha');
+        $this->insertRevokedAccessToken('beta');
+
+        $this->artisan('passport:purge', ['--tenant' => true, '--domain' => 'alpha', '--revoked' => true])->assertSuccessful();
+
+        $this->assertSame(0, $this->tenantDatabase('alpha')->table('oauth_access_tokens')->count());
+        $this->assertSame(1, $this->tenantDatabase('beta')->table('oauth_access_tokens')->count());
     }
 
     public function test_refresh_tokens_are_persisted_to_the_current_tenant_database(): void

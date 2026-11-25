@@ -2,12 +2,12 @@
 
 namespace Sellmate\Laravel\MultiTenant\Providers;
 
-use Laravel\Passport\Console\HashCommand;
 use Laravel\Passport\Console\KeysCommand;
-use Laravel\Passport\Console\PurgeCommand;
 use Laravel\Passport\PassportServiceProvider as BaseProvider;
 use Sellmate\Laravel\MultiTenant\Commands\Passport\ClientCommand;
+use Sellmate\Laravel\MultiTenant\Commands\Passport\HashCommand;
 use Sellmate\Laravel\MultiTenant\Commands\Passport\InstallCommand;
+use Sellmate\Laravel\MultiTenant\Commands\Passport\PurgeCommand;
 
 /**
  * Register instead of Laravel\Passport\PassportServiceProvider (exclude it from package discovery).
