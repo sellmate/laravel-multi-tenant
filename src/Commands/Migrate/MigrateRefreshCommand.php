@@ -37,10 +37,14 @@ class MigrateRefreshCommand extends RefreshCommand
             $this->setTenantDatabase();
             foreach ($tenants as $tenant) {
                 $this->manager->setTenantConnection($tenant);
-                $this->checkEnv($this->manager->tenantConnectionName);
+                $this->checkEnv($this->manager->tenantConnectionName, $this->option('secret'));
                 $this->info("Refreshing migrations for '{$tenant->name}'...");
 
-                $domain = $tenant->domain;
+                $domain = $tenant->{config('multitenancy.tenant-id-column', 'domain')};
+
+                // The check above already authenticated this process (migration_admin_authenticated),
+                // which is what lets the nested commands run; --secret is forwarded only so they do not
+                // depend on that shortcut.
 
                 $path = $this->input->getOption('path');
 
@@ -57,6 +61,7 @@ class MigrateRefreshCommand extends RefreshCommand
                         '--realpath' => $this->input->getOption('realpath'),
                         '--step' => $step,
                         '--force' => true,
+                        '--secret' => $this->option('secret'),
                     ]);
                 } else {
                     $this->call('migrate:reset', [
@@ -65,6 +70,7 @@ class MigrateRefreshCommand extends RefreshCommand
                         '--path' => $path,
                         '--realpath' => $this->input->getOption('realpath'),
                         '--force' => true,
+                        '--secret' => $this->option('secret'),
                     ]);
                 }
 
@@ -77,6 +83,7 @@ class MigrateRefreshCommand extends RefreshCommand
                     '--path' => $path,
                     '--realpath' => $this->input->getOption('realpath'),
                     '--force' => true,
+                    '--secret' => $this->option('secret'),
                 ]);
 
                 if ($this->needsSeeding()) {
@@ -88,7 +95,7 @@ class MigrateRefreshCommand extends RefreshCommand
             }
         } else {
             $database = $this->option('database') ?? 'system';
-            $this->checkEnv($database);
+            $this->checkEnv($database, $this->option('secret'));
             $this->setDefaultConnection($database);
             parent::handle();
         }
@@ -100,6 +107,7 @@ class MigrateRefreshCommand extends RefreshCommand
             ['tenant', 'T', InputOption::VALUE_NONE, "Reset and re-run all migrations for tenant database."],
             ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
             ['without-root', null, InputOption::VALUE_NONE, "Run migrations without root migrations. Migrate only path with database name."],
+            ['secret', null, InputOption::VALUE_OPTIONAL, 'Secret for production'],
         ];
     }
 }

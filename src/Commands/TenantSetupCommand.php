@@ -19,7 +19,8 @@ class TenantSetupCommand extends Command
      */
     protected $signature = "tenant:setup
                             {--domain= : The domain for tenant. 'all' or null value for all tenants.}
-                            {--m|migrate : Run migration after setup.}";
+                            {--m|migrate : Run migration after setup.}
+                            {--secret= : Secret for production}";
 
     /**
      * The console command description.
@@ -54,7 +55,7 @@ class TenantSetupCommand extends Command
         // refused host is never contacted.
         foreach ($tenants as $tenant) {
             $this->manager->setTenantConnection($tenant);
-            $this->checkEnv($this->manager->tenantAdminConnectionName);
+            $this->checkEnv($this->manager->tenantAdminConnectionName, $this->option('secret'));
         }
 
         $progressBar = $this->output->createProgressBar(count($tenants));
@@ -75,6 +76,7 @@ class TenantSetupCommand extends Command
                     '--tenant' => true,
                     '--domain' => $tenant->{config('multitenancy.tenant-id-column', 'domain')},
                     '--force' => true,
+                    '--secret' => $this->option('secret'),
                 ]);
 
                 if ($exitCode !== self::SUCCESS) {

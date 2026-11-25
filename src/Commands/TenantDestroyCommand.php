@@ -16,7 +16,9 @@ class TenantDestroyCommand extends Command
      *
      * @var string
      */
-    protected $signature = "tenant:destroy {--domain= : The domain for tenant. 'all' or null value for all tenants.}";
+    protected $signature = "tenant:destroy
+                            {--domain= : The domain for tenant. 'all' or null value for all tenants.}
+                            {--secret= : Secret for production}";
 
     /**
      * The console command description.
@@ -51,7 +53,7 @@ class TenantDestroyCommand extends Command
             $this->info("Deleting database and user for '{$tenant->name}'...");
 
             $this->manager->setTenantConnection($tenant);
-            $this->checkEnv($this->manager->tenantConnectionName);
+            $this->checkEnv($this->manager->tenantConnectionName, $this->option('secret'));
             $this->manager->destroyTenant();
 
             $tenant->setup_has_done = false;

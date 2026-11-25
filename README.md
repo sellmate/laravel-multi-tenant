@@ -114,7 +114,7 @@ php artisan tenant:destroy --domain=alpha           # 계정·DB 삭제
 
 | 명령 | 추가 옵션 |
 |---|---|
-| `migrate`, `migrate:install`, `migrate:refresh`, `migrate:reset`, `migrate:rollback` | `-T`/`--tenant`, `--domain`, `--without-root` (`migrate`는 `--secret`도) |
+| `migrate`, `migrate:install`, `migrate:refresh`, `migrate:reset`, `migrate:rollback` | `-T`/`--tenant`, `--domain`, `--without-root`, `--secret` (`migrate:install`은 `--secret` 없음) |
 | `migrate:status`, `db:seed` | `-T`/`--tenant`, `--domain` |
 | `make:migration`, `make:model` | `-S`/`--system`, `-T`/`--tenant` (`make:migration`은 `--database`도) |
 | `make:seeder` | `-T`/`--tenant` |
@@ -143,7 +143,7 @@ php artisan make:migration create_orders_table --tenant
 
 `migrate`·`migrate:refresh|reset|rollback`·`tenant:setup`·`tenant:destroy`는 실행 전에 대상 DB를 검사합니다. `tenant:setup`은 DB·계정을 만들기 전에 `tenant_admin` 연결(테넌트의 `db_host`)을 검사합니다.
 
-- `APP_ENV=production`: 관리 비밀번호를 묻습니다. `migrate`는 `--secret`으로 넘길 수 있습니다.
+- `APP_ENV=production`: 관리 비밀번호를 묻습니다. 묻지 못하는 환경(배포 스크립트 등)에서는 `--secret`으로 넘깁니다. 명령줄 인자는 셸 히스토리·프로세스 목록에 남을 수 있으니 비밀 저장소의 값을 주입하는 방식으로 쓰세요.
 - 그 외 환경: 연결 host가 `dev-host-list`(`MULTITENANCY_TENANT_DEV_HOST_LIST`, 쉼표 구분)에 있어야 합니다. 연결에 `url`이 있으면 URL의 host로 판단하고, SQLite는 항상 허용합니다.
 
 검증에 실패하거나 대상 테넌트가 없으면 명령은 0이 아닌 종료 코드로 끝납니다. `migrate --graceful`도 검증 실패는 실패로 남깁니다.

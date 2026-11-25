@@ -44,7 +44,7 @@ trait EnvCheck
             //     }
             // } else {
             if (!Config::get('migration_admin_authenticated')) {
-                if ($secret) {
+                if ($secret !== null && $secret !== '') {
                     $password = $secret;
                 } else {
                     $password = $this->secret('관리 비밀번호를 입력하세요');
