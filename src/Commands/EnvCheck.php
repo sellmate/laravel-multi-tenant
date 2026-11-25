@@ -17,12 +17,10 @@ trait EnvCheck
 
     protected function checkEnv($database = null, $secret = null)
     {
-        $database = $database ?? $this->option('database');
-
-        $checkPassword = !$this->option('tenant');
+        $database = $database ?? ($this->hasOption('database') ? $this->option('database') : null);
 
         if (!$database) {
-            if ($this->option('tenant')) {
+            if ($this->hasOption('tenant') && $this->option('tenant')) {
                 $database = $this->manager->tenantConnectionName;
             } else {
                 $database = $this->manager->systemConnectionName;
