@@ -98,7 +98,7 @@ class MigrateRefreshCommand extends RefreshCommand
         return [
             ['tenant', 'T', InputOption::VALUE_NONE, "Reset and re-run all migrations for tenant database."],
             ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
-            ['without-root', null, InputOption::VALUE_OPTIONAL, "Run migrations without root migrations. Migrate only path with database name."],
+            ['without-root', null, InputOption::VALUE_NONE, "Run migrations without root migrations. Migrate only path with database name."],
         ];
     }
 }

@@ -49,6 +49,29 @@ class MigrateCommandTest extends TestCase
         $this->assertTrue($this->tenantDatabase('gamma')->getSchemaBuilder()->hasTable('widgets'));
     }
 
+    public static function rootlessCommands(): array
+    {
+        return [['migrate:install'], ['migrate:refresh'], ['migrate:reset'], ['migrate:rollback']];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('rootlessCommands')]
+    public function test_without_root_is_a_flag(string $command): void
+    {
+        $option = $this->app[\Illuminate\Contracts\Console\Kernel::class]->all()[$command]->getDefinition()->getOption('without-root');
+
+        $this->assertFalse($option->acceptValue());
+    }
+
+    public function test_reset_without_root_skips_root_migrations(): void
+    {
+        $this->artisan('migrate', ['--path' => $this->fixturePath('ok'), '--realpath' => true])->assertSuccessful();
+
+        $this->artisan('migrate:reset', ['--path' => $this->fixturePath('ok'), '--realpath' => true, '--without-root' => true])
+            ->assertSuccessful();
+
+        $this->assertTrue(Schema::connection('system')->hasTable('widgets'));
+    }
+
     public function test_graceful_turns_a_failing_migration_into_success(): void
     {
         $this->artisan('migrate', ['--path' => $this->fixturePath('failing'), '--realpath' => true, '--graceful' => true])
