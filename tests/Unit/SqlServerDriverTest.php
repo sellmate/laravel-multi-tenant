@@ -34,7 +34,8 @@ class SqlServerDriverTest extends TestCase
             $this->statements[] = preg_replace('/\s+/', ' ', trim($sql));
 
             return true;
-        });
+        })->byDefault();
+        $this->connection->shouldReceive('select')->andReturn([])->byDefault();
 
         DB::shouldReceive('connection')->with('tenant_admin')->andReturn($this->connection);
     }
@@ -74,6 +75,63 @@ class SqlServerDriverTest extends TestCase
         (new SqlServerDriver('tenant_admin'))->setup(['database' => 'laravel_shop.example', 'username' => 'laravel_shop.example'] + self::CONFIG);
 
         $this->assertStringContainsString('CREATE LOGIN [laravel_shop.example]', $this->statements[0]);
+    }
+
+    /**
+     * Must match tests/sqlserver/destroy-rerun/destroy.sql and the first two statements of its verify.sql
+     * S3 (names aside), which run them against a real SQL Server; this test can only compare strings.
+     */
+    public const DESTROY_STATEMENTS = [
+        "IF DB_ID(N'laravel_alpha') IS NOT NULL EXEC(N'USE [laravel_alpha]; DROP USER IF EXISTS [laravel_alpha];')",
+        "IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'laravel_alpha') DROP LOGIN [laravel_alpha]",
+        "USE [master]; IF DB_ID(N'laravel_alpha') IS NOT NULL EXEC(N'ALTER DATABASE [laravel_alpha] SET SINGLE_USER WITH ROLLBACK IMMEDIATE');",
+    ];
+
+    public function test_destroy_guards_every_step_so_it_can_be_rerun(): void
+    {
+        $this->schema->shouldReceive('dropDatabaseIfExists')->once()->with('laravel_alpha');
+
+        $this->assertTrue((new SqlServerDriver('tenant_admin'))->destroy(self::CONFIG));
+
+        $this->assertSame(self::DESTROY_STATEMENTS, $this->statements);
+    }
+
+    public function test_destroy_ends_sessions_of_the_tenant_login_first(): void
+    {
+        $this->connection->shouldReceive('select')->with('SELECT spid FROM sysprocesses WHERE loginame = ?', ['laravel_alpha'])
+            ->andReturn([(object) ['spid' => '53']]);
+        $this->schema->shouldReceive('dropDatabaseIfExists');
+
+        (new SqlServerDriver('tenant_admin'))->destroy(self::CONFIG);
+
+        $this->assertSame('KILL 53', $this->statements[0]);
+    }
+
+    public function test_destroy_wraps_a_failing_step_and_keeps_the_cause(): void
+    {
+        $this->connection->shouldReceive('statement')->andThrow(new \RuntimeException('permission denied'));
+        $this->schema->shouldNotReceive('dropDatabaseIfExists');
+
+        try {
+            (new SqlServerDriver('tenant_admin'))->destroy(self::CONFIG);
+            $this->fail('Expected destroy to fail');
+        } catch (TenantDatabaseException $e) {
+            $this->assertSame('permission denied', $e->getPrevious()?->getMessage());
+        }
+    }
+
+    public function test_destroy_fails_when_a_step_reports_failure(): void
+    {
+        $this->connection->shouldReceive('statement')->andReturn(false);
+        $this->schema->shouldNotReceive('dropDatabaseIfExists');
+
+        try {
+            (new SqlServerDriver('tenant_admin'))->destroy(self::CONFIG);
+            $this->fail('Expected destroy to fail');
+        } catch (TenantDatabaseException $e) {
+            $this->assertSame("Could not drop user 'laravel_alpha'", $e->getMessage());
+            $this->assertNull($e->getPrevious());
+        }
     }
 
     public function test_setup_quotes_the_password(): void
