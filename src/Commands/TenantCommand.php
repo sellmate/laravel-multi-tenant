@@ -6,10 +6,29 @@ use App\Models\System\Tenant;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 
 trait TenantCommand
 {
     protected DatabaseManager $manager;
+
+    /**
+     * The command repoints the default connection and `passport.connection`; restoring both keeps
+     * that from leaking into later work in the same process (queue workers, Artisan::call()).
+     */
+    public function run(InputInterface $input, OutputInterface $output): int
+    {
+        $passportConnection = config('passport.connection');
+        $defaultConnection = DB::getDefaultConnection();
+
+        try {
+            return parent::run($input, $output);
+        } finally {
+            config(['passport.connection' => $passportConnection]);
+            DB::setDefaultConnection($defaultConnection);
+        }
+    }
 
     protected function getTenants($setup = true)
     {
@@ -46,7 +65,7 @@ trait TenantCommand
 
     protected function setDefaultConnection($connectionName)
     {
-        config(['passport.storage.database.connection' => $connectionName]);
+        config(['passport.connection' => $connectionName]);
         if ($this->hasOption('database')) {
             $this->input->setOption('database', $connectionName);
         }

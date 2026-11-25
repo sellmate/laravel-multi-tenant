@@ -8,36 +8,28 @@ use Laravel\Passport\Console\PurgeCommand;
 use Laravel\Passport\PassportServiceProvider as BaseProvider;
 use Sellmate\Laravel\MultiTenant\Commands\Passport\ClientCommand;
 use Sellmate\Laravel\MultiTenant\Commands\Passport\InstallCommand;
-use Sellmate\Laravel\MultiTenant\RefreshTokenRepository;
 
+/**
+ * Register instead of Laravel\Passport\PassportServiceProvider (exclude it from package discovery).
+ *
+ * Precondition: `passport.connection` (PASSPORT_CONNECTION) must stay null. Passport's models then
+ * use the default connection, which HandleTenantConnection switches to the tenant; a fixed
+ * connection would store every tenant's clients and tokens in that one database.
+ */
 class PassportServiceProvider extends BaseProvider
 {
     /**
-     * Bootstrap the application services.
-     *
-     * @return void
+     * OAuth routes need the tenant's `{domain}` parameter and HandleTenantConnection, so the app
+     * registers them inside its tenant route group; registering them globally would issue and
+     * look up tokens in the system database.
      */
-    public function boot()
+    protected function registerRoutes(): void
     {
-        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'passport');
+    }
 
-        $this->deleteCookieOnLogout();
-
+    protected function registerCommands(): void
+    {
         if ($this->app->runningInConsole()) {
-            // $this->registerMigrations();
-
-            $this->publishes([
-                __DIR__ . '/../database/migrations' => database_path('migrations'),
-            ], 'passport-migrations');
-
-            $this->publishes([
-                __DIR__ . '/../resources/views' => base_path('resources/views/vendor/passport'),
-            ], 'passport-views');
-
-            $this->publishes([
-                __DIR__ . '/../config/passport.php' => config_path('passport.php'),
-            ], 'passport-config');
-
             $this->commands([
                 InstallCommand::class,
                 ClientCommand::class,
@@ -46,22 +38,5 @@ class PassportServiceProvider extends BaseProvider
                 PurgeCommand::class,
             ]);
         }
-    }
-
-    /**
-     * Create and configure a Password grant instance.
-     *
-     * @return PasswordGrant
-     */
-    protected function makePasswordGrant()
-    {
-        $grant = new \League\OAuth2\Server\Grant\PasswordGrant(
-            $this->app->make(\Laravel\Passport\Bridge\UserRepository::class),
-            $this->app->make(RefreshTokenRepository::class)
-        );
-
-        $grant->setRefreshTokenTTL(\Laravel\Passport\Passport::refreshTokensExpireIn());
-
-        return $grant;
     }
 }
