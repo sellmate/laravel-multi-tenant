@@ -2,8 +2,11 @@
 
 namespace Sellmate\Laravel\MultiTenant\Commands;
 
+use App\Models\System\Tenant;
 use Illuminate\Console\Command;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
+use Sellmate\Laravel\MultiTenant\Exceptions\TenantCommandException;
+use Throwable;
 
 class TenantSetupCommand extends Command
 {
@@ -59,15 +62,31 @@ class TenantSetupCommand extends Command
             $tenant->save();
 
             if ($this->option('migrate')) {
-                $this->call('migrate', [
-                    '--tenant' => true,
-                    '--domain' => $tenant->{config('multitenancy.tenant-id-column', 'domain')},
-                    '--force' => true,
-                ]);
+                try {
+                    $exitCode = $this->call('migrate', [
+                        '--tenant' => true,
+                        '--domain' => $tenant->{config('multitenancy.tenant-id-column', 'domain')},
+                        '--force' => true,
+                    ]);
+                } catch (Throwable $e) {
+                    $this->markPending($tenant);
+                    throw $e;
+                }
+
+                if ($exitCode !== self::SUCCESS) {
+                    $this->markPending($tenant);
+                    throw new TenantCommandException("Migration failed for '{$tenant->name}'");
+                }
             }
 
             $progressBar->advance();
             $this->info("  Database and user for '{$tenant->name}' created successfully.");
         }
+    }
+
+    private function markPending(Tenant $tenant): void
+    {
+        $tenant->setup_has_done = false;
+        $tenant->save();
     }
 }
