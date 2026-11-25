@@ -6,7 +6,7 @@ use Sellmate\Laravel\MultiTenant\Exceptions\TenantDatabaseException;
 
 class MySqlDriver extends DatabaseDriver
 {
-    public function Create(array $config)
+    public function setup(array $config)
     {
         return $this->connection->transaction(function () use ($config) {
             $this->createDatabase($config['database']);
@@ -23,7 +23,7 @@ class MySqlDriver extends DatabaseDriver
         });
     }
 
-    public function Delete(array $config)
+    public function destroy(array $config)
     {
         return $this->connection->transaction(function () use ($config) {
             if (!$this->connection->statement(<<<SQL
