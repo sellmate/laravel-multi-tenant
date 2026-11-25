@@ -6,6 +6,7 @@ use App\Models\System\Tenant;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
+use Sellmate\Laravel\MultiTenant\Exceptions\TenantCommandException;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -34,23 +35,22 @@ trait TenantCommand
     {
         DB::setDefaultConnection($this->manager->systemConnectionName);
 
-        if (Schema::hasTable(Tenant::getTableName())) {
-            $qb = Tenant::where('setup_has_done', $setup);
-            if ($this->option('domain')) {
-                $qb->whereIn(config('multitenancy.tenant-id-column', 'domain'), explode(',', $this->option('domain')));
-            }
-
-            $tenants = $qb->get();
-
-            if (count($tenants) == 0) {
-                $this->error('No available tenants found');
-                exit;
-            }
-            return $tenants;
-        } else {
-            $this->error('tenants table is not exists in system database');
-            exit;
+        if (! Schema::hasTable(Tenant::getTableName())) {
+            throw new TenantCommandException('tenants table does not exist in system database');
         }
+
+        $qb = Tenant::where('setup_has_done', $setup);
+        if ($this->option('domain')) {
+            $qb->whereIn(config('multitenancy.tenant-id-column', 'domain'), explode(',', $this->option('domain')));
+        }
+
+        $tenants = $qb->get();
+
+        if ($tenants->isEmpty()) {
+            throw new TenantCommandException('No available tenants found');
+        }
+
+        return $tenants;
     }
 
     protected function setSystemDatabase()

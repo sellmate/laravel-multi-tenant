@@ -9,6 +9,7 @@ use Sellmate\Laravel\MultiTenant\Commands\AddsTenantOptions;
 use Sellmate\Laravel\MultiTenant\Commands\EnvCheck;
 use Sellmate\Laravel\MultiTenant\Commands\TenantCommand;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
+use Sellmate\Laravel\MultiTenant\Exceptions\TenantCommandException;
 use Symfony\Component\Console\Input\InputOption;
 use Throwable;
 
@@ -73,9 +74,12 @@ class MigrateCommand extends BaseMigrateCommand
             } else {
                 $database = $this->option('database') ?? 'system';
                 $this->setDefaultConnection($database);
-                $this->checkEnv($database);
+                $this->checkEnv($database, $this->option('secret'));
                 parent::handle();
             }
+        } catch (TenantCommandException $e) {
+            // --graceful tolerates migration errors, not a refused environment check.
+            throw $e;
         } catch (Throwable $e) {
             if ($this->option('graceful')) {
                 $this->components->warn($e->getMessage());
