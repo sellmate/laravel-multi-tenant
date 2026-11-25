@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'key' => env('MULTITENANCY_KEY', env('APP_KEY', 'mt_secret_key')),
+    'key' => env('MULTITENANCY_KEY', env('APP_KEY')),
     'system-connection' => env('MULTITENANCY_SYSTEM_CONNECTION', 'system'),
     'tenant-connection' => env('MULTITENANCY_TENANT_CONNECTION', 'tenant'),
     'tenant-admin-connection' => env('MULTITENANCY_TENANT_ADMIN_CONNECTION', 'tenant_admin'),

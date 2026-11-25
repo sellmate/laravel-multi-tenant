@@ -55,6 +55,7 @@ abstract class TestCase extends BaseTestCase
         ];
 
         $app['config']->set('app.name', 'Laravel');
+        $app['config']->set('multitenancy.key', 'test-key');
         $app['config']->set('database.default', 'system');
         $app['config']->set('database.connections.system', $sqlite);
         $app['config']->set('database.connections.tenant', $sqlite);
