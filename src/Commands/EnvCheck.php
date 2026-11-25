@@ -3,6 +3,7 @@
 namespace Sellmate\Laravel\MultiTenant\Commands;
 
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\ConfigurationUrlParser;
 use Illuminate\Support\Facades\Hash;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Sellmate\Laravel\MultiTenant\Exceptions\TenantCommandException;
@@ -56,9 +57,24 @@ trait EnvCheck
                 Config::set('migration_admin_authenticated', 1);
             }
             // }
-        } elseif (!in_array($config['host'] ?? null, config('multitenancy.dev-host-list', []))) {
+        } elseif (! $this->isDevelopmentDatabase($config ?? [])) {
             throw new TenantCommandException('개발 환경에서 운영DB에 대한 작업을 수행할 수 없습니다! 명령이 취소됩니다.', 2);
         }
         $this->info('수행 환경이 검증되었습니다. 명령을 수행합니다.');
+    }
+
+    private function isDevelopmentDatabase(array $config): bool
+    {
+        // Laravel lets `url` override host when connecting, so judge the parsed result.
+        $config = (new ConfigurationUrlParser)->parseConfiguration($config);
+
+        // SQLite has no server: the database is a local file or in memory.
+        if (($config['driver'] ?? null) === 'sqlite') {
+            return true;
+        }
+
+        $devHosts = array_map('trim', (array) config('multitenancy.dev-host-list', []));
+
+        return isset($config['host']) && in_array($config['host'], $devHosts, true);
     }
 }
