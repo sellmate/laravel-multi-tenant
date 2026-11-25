@@ -108,7 +108,7 @@ php artisan tenant:setup --domain=alpha --migrate   # DB·계정 생성 후 마�
 php artisan tenant:destroy --domain=alpha           # 계정·DB 삭제
 ```
 
-`tenant:setup`은 `setup_has_done`이 false인 테넌트만, 나머지 테넌트 명령은 true인 테넌트만 대상으로 합니다. `setup_has_done`은 DB·계정이 만들어졌다는 뜻이라, `--migrate`가 실패해도 true로 남고 명령만 실패합니다. 이때는 `migrate --tenant --domain=<domain>`으로 다시 시도하거나 `tenant:destroy`로 정리하세요. `APP_ENV=production`에서 `--migrate`는 관리 비밀번호를 묻습니다.
+`tenant:setup`은 `setup_has_done`이 false인 테넌트만, 나머지 테넌트 명령은 true인 테넌트만 대상으로 합니다. `setup_has_done`은 DB·계정이 만들어졌다는 뜻이라, `--migrate`가 실패해도 true로 남고 명령만 실패합니다. 이때는 `migrate --tenant --domain=<domain>`으로 다시 시도하거나 `tenant:destroy`로 정리하세요. `APP_ENV=production`에서는 관리 비밀번호를 묻습니다(한 번 확인하면 같은 실행 안에서는 다시 묻지 않습니다).
 
 ### `--tenant`·`--domain` 옵션
 
@@ -141,7 +141,7 @@ php artisan make:migration create_orders_table --tenant
 
 ### 실행 환경 검증
 
-`migrate`·`migrate:refresh|reset|rollback`·`tenant:destroy`는 실행 전에 대상 DB를 검사합니다.
+`migrate`·`migrate:refresh|reset|rollback`·`tenant:setup`·`tenant:destroy`는 실행 전에 대상 DB를 검사합니다. `tenant:setup`은 DB·계정을 만들기 전에 `tenant_admin` 연결(테넌트의 `db_host`)을 검사합니다.
 
 - `APP_ENV=production`: 관리 비밀번호를 묻습니다. `migrate`는 `--secret`으로 넘길 수 있습니다.
 - 그 외 환경: 연결 host가 `dev-host-list`(`MULTITENANCY_TENANT_DEV_HOST_LIST`, 쉼표 구분)에 있어야 합니다. 연결에 `url`이 있으면 URL의 host로 판단하고, SQLite는 항상 허용합니다.
