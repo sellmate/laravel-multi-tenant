@@ -42,7 +42,7 @@ class MigrateRollbackCommand extends RollbackCommand
             $this->setTenantDatabase();
             foreach ($tenants as $tenant) {
                 $this->manager->setTenantConnection($tenant);
-                $this->checkEnv($this->manager->tenantConnectionName);
+                $this->checkEnv($this->manager->tenantConnectionName, $this->option('secret'));
                 $this->info("Rolling back '{$tenant->name}'...");
                 $progressBar->advance();
                 $this->newLine();
@@ -51,7 +51,7 @@ class MigrateRollbackCommand extends RollbackCommand
         } else {
             $database = $this->option('database') ?? 'system';
             $this->setDefaultConnection($database);
-            $this->checkEnv($database);
+            $this->checkEnv($database, $this->option('secret'));
             parent::handle();
         }
     }
@@ -62,6 +62,7 @@ class MigrateRollbackCommand extends RollbackCommand
             ['tenant', 'T', InputOption::VALUE_NONE, "Rollback the last database migration for tenant database."],
             ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
             ['without-root', null, InputOption::VALUE_NONE, "Run migrations without root migrations. Migrate only path with database name."],
+            ['secret', null, InputOption::VALUE_OPTIONAL, 'Secret for production'],
         ];
     }
 }

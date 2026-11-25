@@ -42,7 +42,7 @@ class MigrateResetCommand extends ResetCommand
             $this->setTenantDatabase();
             foreach ($tenants as $tenant) {
                 $this->manager->setTenantConnection($tenant);
-                $this->checkEnv($this->manager->tenantConnectionName);
+                $this->checkEnv($this->manager->tenantConnectionName, $this->option('secret'));
                 $this->info("Resetting migrations for '{$tenant->name}'...");
                 $progressBar->advance();
                 parent::handle();
@@ -50,7 +50,7 @@ class MigrateResetCommand extends ResetCommand
         } else {
             $database = $this->option('database') ?? 'system';
             $this->setDefaultConnection($database);
-            $this->checkEnv($database);
+            $this->checkEnv($database, $this->option('secret'));
             parent::handle();
         }
     }
@@ -61,6 +61,7 @@ class MigrateResetCommand extends ResetCommand
             ['tenant', 'T', InputOption::VALUE_NONE, "Rollback all database migrations for tenant database."],
             ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
             ['without-root', null, InputOption::VALUE_NONE, "Run migrations without root migrations. Migrate only path with database name."],
+            ['secret', null, InputOption::VALUE_OPTIONAL, 'Secret for production'],
         ];
     }
 }
