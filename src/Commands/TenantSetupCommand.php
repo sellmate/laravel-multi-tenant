@@ -54,16 +54,17 @@ class TenantSetupCommand extends Command
             $this->manager->setTenantConnection($tenant);
             $this->manager->setupTenant();
 
+            // migrate --tenant only targets tenants whose setup is done, so mark it before migrating.
+            $tenant->setup_has_done = true;
+            $tenant->save();
+
             if ($this->option('migrate')) {
                 $this->call('migrate', [
                     '--tenant' => true,
-                    '--domain' => $tenant->domain,
+                    '--domain' => $tenant->{config('multitenancy.tenant-id-column', 'domain')},
                     '--force' => true,
                 ]);
             }
-
-            $tenant->setup_has_done = true;
-            $tenant->save();
 
             $progressBar->advance();
             $this->info("  Database and user for '{$tenant->name}' created successfully.");
