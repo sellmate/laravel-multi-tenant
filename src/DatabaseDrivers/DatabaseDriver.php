@@ -30,6 +30,20 @@ class DatabaseDriver
         throw new LogicException('This database driver does not support destroy tenant');
     }
 
+    /**
+     * Database and account names are interpolated into DDL, which cannot bind identifiers.
+     *
+     * @throws TenantDatabaseException when the name contains anything but letters, digits, underscores and hyphens
+     */
+    protected function identifier(string $name): string
+    {
+        if (! preg_match('/^[A-Za-z0-9_-]+$/', $name)) {
+            throw new TenantDatabaseException("Invalid database identifier '{$name}'");
+        }
+
+        return $name;
+    }
+
     public function createDatabase($name)
     {
         try {

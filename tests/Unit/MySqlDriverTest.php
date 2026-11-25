@@ -24,6 +24,7 @@ class MySqlDriverTest extends TestCase
         $connection = Mockery::mock(Connection::class);
         $connection->shouldReceive('getSchemaBuilder')->andReturn($this->schema);
         $connection->shouldReceive('transaction')->andReturnUsing(fn ($callback) => $callback());
+        $connection->shouldReceive('escape')->andReturnUsing(fn ($value) => "'" . str_replace(['\\', "'"], ['\\\\', "\\'"], $value) . "'");
         $connection->shouldReceive('statement')->andReturnUsing(function ($sql) use ($statementResult) {
             $this->statements[] = preg_replace('/\s+/', ' ', trim($sql));
 
@@ -58,6 +59,63 @@ class MySqlDriverTest extends TestCase
             "REVOKE ALL ON `laravel_alpha`.* FROM `laravel_alpha`@'%'",
             "DROP USER IF EXISTS `laravel_alpha`@'%'",
         ], $this->statements);
+    }
+
+    public static function unsafeIdentifiers(): array
+    {
+        return [
+            'backtick in database' => [['database' => 'a`; DROP DATABASE system; --'] + self::CONFIG],
+            'quote in username' => [['username' => "a'@'%' IDENTIFIED BY 'x'; --"] + self::CONFIG],
+            'empty username' => [['username' => ''] + self::CONFIG],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('unsafeIdentifiers')]
+    public function test_setup_rejects_unsafe_identifiers_before_running_any_sql(array $config): void
+    {
+        $driver = $this->driver();
+        $this->schema->shouldNotReceive('createDatabase');
+
+        try {
+            $driver->setup($config);
+            $this->fail('Expected unsafe identifier to be rejected');
+        } catch (TenantDatabaseException) {
+            $this->assertSame([], $this->statements);
+        }
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('unsafeIdentifiers')]
+    public function test_destroy_rejects_unsafe_identifiers_before_running_any_sql(array $config): void
+    {
+        $driver = $this->driver();
+        $this->schema->shouldNotReceive('dropDatabaseIfExists');
+
+        try {
+            $driver->destroy($config);
+            $this->fail('Expected unsafe identifier to be rejected');
+        } catch (TenantDatabaseException) {
+            $this->assertSame([], $this->statements);
+        }
+    }
+
+    public function test_setup_accepts_hyphenated_identifiers(): void
+    {
+        $driver = $this->driver();
+        $this->schema->shouldReceive('createDatabase')->once()->with('laravel_alpha-1');
+
+        $driver->setup(['database' => 'laravel_alpha-1', 'username' => 'laravel_alpha-1'] + self::CONFIG);
+
+        $this->assertSame("GRANT ALL ON `laravel_alpha-1`.* TO `laravel_alpha-1`@'%'", $this->statements[1]);
+    }
+
+    public function test_setup_quotes_the_password(): void
+    {
+        $driver = $this->driver();
+        $this->schema->shouldReceive('createDatabase');
+
+        $driver->setup(['password' => "p'w"] + self::CONFIG);
+
+        $this->assertSame("CREATE USER IF NOT EXISTS `laravel_alpha`@'%' IDENTIFIED BY 'p\\'w'", $this->statements[0]);
     }
 
     public function test_setup_fails_when_a_statement_fails(): void
