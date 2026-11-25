@@ -9,6 +9,8 @@ use Symfony\Component\Console\Input\InputOption;
 
 class ModelMakeCommand extends BaseCommand
 {
+    use AddsTenantOptions;
+
     /**
      * Create a migration file for the model.
      *
@@ -33,17 +35,12 @@ class ModelMakeCommand extends BaseCommand
         $this->call('make:migration', $args);
     }
 
-    /**
-     * Get the console command options.
-     *
-     * @return array
-     */
-    protected function getOptions()
+    protected function tenantOptions(): array
     {
-        return array_merge(parent::getOptions(), [
+        return [
             ['system', 'S', InputOption::VALUE_NONE, "Create a new Eloquent model class for system database."],
             ['tenant', 'T', InputOption::VALUE_NONE, "Create a new Eloquent model class for tenant database."],
-        ]);
+        ];
     }
 
     /**

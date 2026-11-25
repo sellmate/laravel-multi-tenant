@@ -6,11 +6,14 @@ use App\Models\System\Tenant;
 use Illuminate\Database\Console\Seeds\SeedCommand as BaseCommand;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Sellmate\Laravel\MultiTenant\Commands\AddsTenantOptions;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Symfony\Component\Console\Input\InputOption;
 
 class SeedCommand extends BaseCommand
 {
+    use AddsTenantOptions;
+
     /**
      * Execute the console command.
      *
@@ -72,16 +75,11 @@ class SeedCommand extends BaseCommand
         }
     }
 
-    /**
-     * Get the console command options.
-     *
-     * @return array
-     */
-    protected function getOptions()
+    protected function tenantOptions(): array
     {
-        return array_merge(parent::getOptions(), [
+        return [
             ['tenant', 'T', InputOption::VALUE_NONE, "Seed the database with records for tenant database."],
             ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
-        ]);
+        ];
     }
 }

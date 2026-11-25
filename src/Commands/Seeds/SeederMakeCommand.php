@@ -3,10 +3,13 @@
 namespace Sellmate\Laravel\MultiTenant\Commands\Seeds;
 
 use Illuminate\Database\Console\Seeds\SeederMakeCommand as BaseCommand;
+use Sellmate\Laravel\MultiTenant\Commands\AddsTenantOptions;
 use Symfony\Component\Console\Input\InputOption;
 
 class SeederMakeCommand extends BaseCommand
 {
+    use AddsTenantOptions;
+
     /**
      * Get the stub file for the generator.
      *
@@ -32,15 +35,10 @@ class SeederMakeCommand extends BaseCommand
         return parent::getPath($name);
     }
 
-    /**
-     * Get the console command options.
-     *
-     * @return array
-     */
-    protected function getOptions()
+    protected function tenantOptions(): array
     {
-        return array_merge(parent::getOptions(), [
-            ['tenant', 'T', InputOption::VALUE_NONE, "Create a new seeder class for tenant database."]
-        ]);
+        return [
+            ['tenant', 'T', InputOption::VALUE_NONE, "Create a new seeder class for tenant database."],
+        ];
     }
 }
