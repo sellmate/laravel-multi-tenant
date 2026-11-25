@@ -27,23 +27,22 @@ class MySqlDriver extends DatabaseDriver
         });
     }
 
+    /**
+     * Idempotent: safe to run again after a partial failure (an already-dropped account or database is not an error).
+     *
+     * @throws TenantDatabaseException when a step fails
+     */
     public function destroy(array $config)
     {
         $database = $this->identifier($config['database']);
         $username = $this->identifier($config['username']);
 
-        return $this->connection->transaction(function () use ($database, $username) {
-            if (!$this->connection->statement(<<<SQL
-                REVOKE ALL ON `{$database}`.* FROM `{$username}`@'%'
-            SQL)) throw new TenantDatabaseException("Could not revoke privileges from user '{$username}' for '{$database}'");
+        if (!$this->connection->statement(<<<SQL
+            DROP USER IF EXISTS `{$username}`@'%'
+        SQL)) throw new TenantDatabaseException("Could not drop user '{$username}'");
 
-            if (!$this->connection->statement(<<<SQL
-                DROP USER IF EXISTS `{$username}`@'%'
-            SQL)) throw new TenantDatabaseException("Could not drop user '{$username}'");
+        $this->dropDatabase($database);
 
-            $this->dropDatabase($database);
-
-            return true;
-        });
+        return true;
     }
 }

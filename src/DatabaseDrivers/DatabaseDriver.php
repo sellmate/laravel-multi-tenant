@@ -53,7 +53,7 @@ class DatabaseDriver
         try {
             $this->schema->createDatabase($name);
         } catch (\Throwable $th) {
-            throw new TenantDatabaseException("Could not create database '{$name}'");
+            throw new TenantDatabaseException("Could not create database '{$name}'", 0, $th);
         }
     }
 
@@ -62,7 +62,7 @@ class DatabaseDriver
         try {
             $this->schema->dropDatabaseIfExists($name);
         } catch (\Throwable $th) {
-            throw new TenantDatabaseException("Could not drop database '{$name}'");
+            throw new TenantDatabaseException("Could not drop database '{$name}'", 0, $th);
         }
     }
 }
