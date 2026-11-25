@@ -50,7 +50,7 @@ class MigrateCommand extends BaseMigrateCommand
     public function handle()
     {
         // 병렬 테스트 수행시 시도되는 migration을 스킵하기
-        if (env('APP_ENV') == 'testing' && env('PARALLEL_TEST_SKIP_MIGRATIONS')) {
+        if ($this->laravel->environment('testing') && config('multitenancy.skip-migrations-in-parallel-tests')) {
             return;
         }
 
