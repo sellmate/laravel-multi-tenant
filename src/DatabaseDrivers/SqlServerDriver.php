@@ -43,6 +43,11 @@ class SqlServerDriver extends DatabaseDriver
         });
     }
 
+    /**
+     * Idempotent: safe to run again after a partial failure (an already-dropped user, login or database is not an error).
+     *
+     * @throws TenantDatabaseException when a step fails
+     */
     public function destroy(array $config)
     {
         $database = $this->identifier($config['database']);
@@ -50,25 +55,37 @@ class SqlServerDriver extends DatabaseDriver
 
         $rows = $this->connection->select('SELECT spid FROM sysprocesses WHERE loginame = ?', [$username]);
         foreach ($rows as $row) {
-            $this->connection->statement('KILL ' . (int) $row->spid);
+            $this->run('KILL ' . (int) $row->spid, "Could not end sessions of login '{$username}'");
         }
 
-        $this->connection->transaction(function () use ($database, $username) {
-            if (!$this->connection->statement(<<<SQL
-                USE [{$database}]
-                DROP USER IF EXISTS [{$username}]
-            SQL)) throw new TenantDatabaseException("Could not drop user '{$username}'");
+        // USE on a missing database fails at compile time (Msg 911) even inside a false IF branch, so it
+        // runs through EXEC, which only compiles the string when the branch is taken.
+        $this->run(<<<SQL
+            IF DB_ID(N'{$database}') IS NOT NULL EXEC(N'USE [{$database}]; DROP USER IF EXISTS [{$username}];')
+        SQL, "Could not drop user '{$username}'");
 
-            if (!$this->connection->statement(<<<SQL
-                DROP LOGIN [{$username}]
-            SQL)) throw new TenantDatabaseException("Could not drop login '{$username}'");
-        });
+        $this->run(<<<SQL
+            IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'{$username}') DROP LOGIN [{$username}]
+        SQL, "Could not drop login '{$username}'");
 
-        // SQL Server 의 경우 database 삭제는 Transaction 내에 포함될 수 없음
-        $this->connection->statement(<<<SQL
-            USE [master];
-            ALTER DATABASE [{$database}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE ;
-        SQL);
+        $this->run(<<<SQL
+            USE [master]; IF DB_ID(N'{$database}') IS NOT NULL EXEC(N'ALTER DATABASE [{$database}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE');
+        SQL, "Could not close connections to database '{$database}'");
+
         $this->dropDatabase($database);
+
+        return true;
+    }
+
+    private function run(string $sql, string $failure): void
+    {
+        try {
+            $succeeded = $this->connection->statement($sql);
+        } catch (\Throwable $th) {
+            throw new TenantDatabaseException($failure, 0, $th);
+        }
+        if (!$succeeded) {
+            throw new TenantDatabaseException($failure);
+        }
     }
 }
