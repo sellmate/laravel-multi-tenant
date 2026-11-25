@@ -40,8 +40,9 @@ trait TenantCommand
         }
 
         $qb = Tenant::where('setup_has_done', $setup);
-        if ($this->option('domain')) {
-            $qb->whereIn(config('multitenancy.tenant-id-column', 'domain'), explode(',', $this->option('domain')));
+        $domain = $this->option('domain');
+        if ($domain && $domain !== 'all') {
+            $qb->whereIn(config('multitenancy.tenant-id-column', 'domain'), explode(',', $domain));
         }
 
         $tenants = $qb->get();
