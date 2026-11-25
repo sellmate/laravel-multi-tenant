@@ -118,7 +118,7 @@ php artisan tenant:destroy --domain=alpha           # 계정·DB 삭제
 | `migrate:status`, `db:seed` | `-T`/`--tenant`, `--domain` |
 | `make:migration`, `make:model` | `-S`/`--system`, `-T`/`--tenant` (`make:migration`은 `--database`도) |
 | `make:seeder` | `-T`/`--tenant` |
-| `passport:client`, `passport:install` | `-T`/`--tenant`, `--domain` |
+| `passport:client`, `passport:install`, `passport:hash`, `passport:purge` | `-T`/`--tenant`, `--domain` |
 
 `--domain`은 쉼표로 여러 테넌트를 지정할 수 있고, 비우거나 `all`이면 전체 테넌트입니다.
 
@@ -178,6 +178,7 @@ php artisan make:migration create_orders_table --tenant
                'as' => 'passport.',
                'prefix' => 'oauth',
                'namespace' => 'Laravel\Passport\Http\Controllers',
+               'middleware' => config('passport.middleware', []),
            ], base_path('vendor/laravel/passport/routes/web.php'));
        });
    ```
@@ -191,6 +192,15 @@ php artisan make:migration create_orders_table --tenant
    php artisan migrate --tenant --path=vendor/laravel/passport/database/migrations
    php artisan passport:install --tenant --domain=all   # personal access·password grant 클라이언트
    php artisan passport:client --tenant --domain=alpha --client --name="alpha"
+   ```
+
+   password grant는 Passport 12부터 기본으로 꺼져 있습니다. `passport:install --tenant`가 만드는 password grant 클라이언트를 쓰려면 `AppServiceProvider::boot()`에서 `Passport::enablePasswordGrant()`를 호출하세요.
+
+5. 만료·폐기 토큰 정리도 테넌트별로 실행합니다.
+
+   ```php
+   // routes/console.php
+   Schedule::command('passport:purge --tenant')->daily();
    ```
 
 ## 설정
@@ -218,6 +228,26 @@ publish하지 않은 키도 패키지 기본값이 적용됩니다.
 - 명령 실패(대상 테넌트 없음, 환경 검증 실패)는 0이 아닌 종료 코드를 반환합니다.
 - `migrate:install|refresh|reset|rollback`의 `--without-root`는 값 없는 플래그입니다.
 - `passport:install --tenant`는 키를 만들지 않습니다. `passport:keys`를 따로 실행하세요.
+
+### Passport 12 → 13 (테넌트 DB마다 적용)
+
+[Passport 13 업그레이드 가이드](https://github.com/laravel/passport/blob/13.x/UPGRADE.md)의 DB 관련 단계는 system DB가 아니라 **각 테넌트 DB**에 적용해야 합니다.
+
+1. **클라이언트 secret 해시.** Passport 13은 secret을 항상 해시로 검증하므로, 평문 secret이 남은 테넌트는 클라이언트 인증이 실패합니다.
+
+   ```bash
+   php artisan passport:hash --tenant --domain=all
+   ```
+
+2. **(선택) `oauth_clients` 스키마 변경.** 새 스키마는 하위 호환이라 필수는 아니지만, 정수 클라이언트 ID를 쓰면 가이드가 강하게 권장합니다(일부 토큰 요청이 401로 실패). 적용한다면 가이드의 마이그레이션(`owner_type`·`owner_id`, `redirect_uris`, `grant_types`)을 `database/migrations/tenant`에 두고 테넌트에 실행합니다. 컬럼을 지우는 되돌릴 수 없는 변경이니 백업 후 실행하세요. 더 이상 쓰지 않는 `oauth_personal_access_clients`도 같은 방식으로 지울 수 있습니다.
+
+   ```bash
+   php artisan migrate --tenant --domain=all
+   ```
+
+3. **정수 클라이언트 ID 유지.** Passport 13은 기본으로 UUID 클라이언트 ID를 씁니다. 기존 테넌트의 정수 ID를 유지하려면 `Passport::$clientUuids = false;`를 `AppServiceProvider::boot()`에 둡니다.
+
+그 밖의 앱 측 변경(User 모델의 `OAuthenticatable` 구현, 미들웨어 이름 변경, 인가 화면 제거, 키 파일 권한 검증)은 가이드를 따르세요.
 
 ## 테스트
 
