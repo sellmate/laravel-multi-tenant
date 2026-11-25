@@ -5,35 +5,29 @@ namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Console\Migrations\MigrateCommand as BaseMigrateCommand;
 use Illuminate\Database\Events\SchemaLoaded;
+use Sellmate\Laravel\MultiTenant\Commands\AddsTenantOptions;
 use Sellmate\Laravel\MultiTenant\Commands\EnvCheck;
 use Sellmate\Laravel\MultiTenant\Commands\TenantCommand;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
+use Sellmate\Laravel\MultiTenant\Exceptions\TenantCommandException;
+use Symfony\Component\Console\Input\InputOption;
+use Throwable;
 
 class MigrateCommand extends BaseMigrateCommand
 {
-    use TenantCommand, EnvCheck;
-
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = "migrate
-                {--T|tenant : Run migrations for tenant. '--database' option will be ignored. use '--domain' instead.}
-                {--domain= : The domain for tenant. 'all' or null value for all tenants.}
-                {--without-root : Run migrations without root migrations. Migrate only path with database name.}
-                {--database= : The database connection to use}
-                {--force : Force the operation to run when in production}
-                {--path=* : The path(s) to the migrations files to be executed}
-                {--realpath : Indicate any provided migration file paths are pre-resolved absolute paths}
-                {--schema-path= : The path to a schema dump file}
-                {--pretend : Dump the SQL queries that would be run}
-                {--seed : Indicates if the seed task should be re-run}
-                {--step : Force the migrations to be run so they can be rolled back individually}
-                {--secret= : Secret for production}
-                {--graceful : Return a successful exit code even if an error occurs}";
+    use TenantCommand, EnvCheck, AddsTenantOptions;
 
     protected DatabaseManager $manager;
+
+    protected function tenantOptions(): array
+    {
+        return [
+            ['tenant', 'T', InputOption::VALUE_NONE, "Run migrations for tenant. '--database' option will be ignored. use '--domain' instead."],
+            ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
+            ['without-root', null, InputOption::VALUE_NONE, 'Run migrations without root migrations. Migrate only path with database name.'],
+            ['secret', null, InputOption::VALUE_OPTIONAL, 'Secret for production'],
+        ];
+    }
 
     /**
      * Create a new migration command instance.
@@ -56,7 +50,7 @@ class MigrateCommand extends BaseMigrateCommand
     public function handle()
     {
         // 병렬 테스트 수행시 시도되는 migration을 스킵하기
-        if (env('APP_ENV') == 'testing' && env('PARALLEL_TEST_SKIP_MIGRATIONS')) {
+        if ($this->laravel->environment('testing') && config('multitenancy.skip-migrations-in-parallel-tests')) {
             return;
         }
 
@@ -80,9 +74,12 @@ class MigrateCommand extends BaseMigrateCommand
             } else {
                 $database = $this->option('database') ?? 'system';
                 $this->setDefaultConnection($database);
-                $this->checkEnv($database);
+                $this->checkEnv($database, $this->option('secret'));
                 parent::handle();
             }
+        } catch (TenantCommandException $e) {
+            // --graceful tolerates migration errors, not a refused environment check.
+            throw $e;
         } catch (Throwable $e) {
             if ($this->option('graceful')) {
                 $this->components->warn($e->getMessage());

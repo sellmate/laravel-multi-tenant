@@ -4,6 +4,7 @@ namespace Sellmate\Laravel\MultiTenant\Commands;
 
 use Illuminate\Console\Command;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
+use Sellmate\Laravel\MultiTenant\Exceptions\TenantCommandException;
 
 class TenantSetupCommand extends Command
 {
@@ -54,16 +55,23 @@ class TenantSetupCommand extends Command
             $this->manager->setTenantConnection($tenant);
             $this->manager->setupTenant();
 
-            if ($this->option('migrate')) {
-                $this->call('migrate', [
-                    '--tenant' => true,
-                    '--domain' => $tenant->domain,
-                    '--force' => true,
-                ]);
-            }
-
+            // setup_has_done means the database and account exist. Tenant commands only target such
+            // tenants, so it is set before migrating and kept if migrating fails: `migrate --tenant`
+            // can then retry and `tenant:destroy` can clean up.
             $tenant->setup_has_done = true;
             $tenant->save();
+
+            if ($this->option('migrate')) {
+                $exitCode = $this->call('migrate', [
+                    '--tenant' => true,
+                    '--domain' => $tenant->{config('multitenancy.tenant-id-column', 'domain')},
+                    '--force' => true,
+                ]);
+
+                if ($exitCode !== self::SUCCESS) {
+                    throw new TenantCommandException("Migration failed for '{$tenant->name}'. Retry with migrate --tenant.");
+                }
+            }
 
             $progressBar->advance();
             $this->info("  Database and user for '{$tenant->name}' created successfully.");

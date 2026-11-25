@@ -4,13 +4,14 @@ namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 
 use Illuminate\Database\Console\Migrations\InstallCommand;
 use Illuminate\Support\Facades\DB;
+use Sellmate\Laravel\MultiTenant\Commands\AddsTenantOptions;
 use Sellmate\Laravel\MultiTenant\Commands\TenantCommand;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Symfony\Component\Console\Input\InputOption;
 
 class MigrateInstallCommand extends InstallCommand
 {
-    use TenantCommand;
+    use TenantCommand, AddsTenantOptions;
 
     /**
      * Create a new migration install command instance.
@@ -53,17 +54,12 @@ class MigrateInstallCommand extends InstallCommand
         }
     }
 
-    /**
-     * Get the console command options.
-     *
-     * @return array
-     */
-    protected function getOptions()
+    protected function tenantOptions(): array
     {
-        return array_merge([
+        return [
             ['tenant', 'T', InputOption::VALUE_NONE, "Create the migration repository for tenant database."],
             ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
-            ['without-root', null, InputOption::VALUE_OPTIONAL, "Run migrations without root migrations. Migrate only path with database name."],
-        ], parent::getOptions());
+            ['without-root', null, InputOption::VALUE_NONE, "Run migrations without root migrations. Migrate only path with database name."],
+        ];
     }
 }

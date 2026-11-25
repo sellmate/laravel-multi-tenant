@@ -30,6 +30,24 @@ class DatabaseDriver
         throw new LogicException('This database driver does not support destroy tenant');
     }
 
+    /**
+     * Characters allowed in database and account names, which are interpolated into DDL because
+     * DDL cannot bind identifiers. MySQL database names cannot contain dots.
+     */
+    protected string $identifierPattern = '/^[A-Za-z0-9_-]+\z/';
+
+    /**
+     * @throws TenantDatabaseException when the name does not match $identifierPattern
+     */
+    protected function identifier(string $name): string
+    {
+        if (! preg_match($this->identifierPattern, $name)) {
+            throw new TenantDatabaseException("Invalid database identifier '{$name}'");
+        }
+
+        return $name;
+    }
+
     public function createDatabase($name)
     {
         try {

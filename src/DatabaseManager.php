@@ -4,6 +4,7 @@ namespace Sellmate\Laravel\MultiTenant;
 
 use App\Models\System\Tenant;
 use Exception;
+use Sellmate\Laravel\MultiTenant\Exceptions\TenantDatabaseException;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Sellmate\Laravel\MultiTenant\DatabaseDrivers\MySqlDriver;
@@ -18,7 +19,7 @@ class DatabaseManager
 
     protected $tenant;
 
-    public function __construct(Tenant $tenant = NULL)
+    public function __construct(?Tenant $tenant = null)
     {
         $this->systemConnectionName = Config('multitenancy.system-connection', 'system');
         $this->tenantConnectionName = Config('multitenancy.tenant-connection', 'tenant');
@@ -83,7 +84,12 @@ class DatabaseManager
         if (method_exists($this->tenant, 'getDatabasePassword')) {
             return $this->tenant->getDatabasePassword();
         } else {
-            return sha1($this->tenant->id.$this->tenant->domain.Config::get('multitenancy.key', Config::get('app.key')));
+            $key = Config::get('multitenancy.key') ?: Config::get('app.key');
+            if (! $key) {
+                throw new TenantDatabaseException('Set multitenancy.key (MULTITENANCY_KEY) or APP_KEY to derive tenant database passwords');
+            }
+
+            return sha1($this->tenant->id.$this->tenant->domain.$key);
         }
     }
 

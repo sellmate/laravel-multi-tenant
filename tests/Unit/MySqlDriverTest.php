@@ -1,0 +1,131 @@
+<?php
+
+namespace Sellmate\Laravel\MultiTenant\Tests\Unit;
+
+use Illuminate\Database\Connection;
+use Illuminate\Database\Schema\Builder;
+use Illuminate\Support\Facades\DB;
+use Mockery;
+use Sellmate\Laravel\MultiTenant\DatabaseDrivers\MySqlDriver;
+use Sellmate\Laravel\MultiTenant\Exceptions\TenantDatabaseException;
+use Sellmate\Laravel\MultiTenant\Tests\TestCase;
+
+class MySqlDriverTest extends TestCase
+{
+    private const CONFIG = ['database' => 'laravel_alpha', 'username' => 'laravel_alpha', 'password' => 'secret'];
+
+    private array $statements = [];
+
+    private Builder $schema;
+
+    private function driver(bool $statementResult = true): MySqlDriver
+    {
+        $this->schema = Mockery::mock(Builder::class);
+        $connection = Mockery::mock(Connection::class);
+        $connection->shouldReceive('getSchemaBuilder')->andReturn($this->schema);
+        $connection->shouldReceive('transaction')->andReturnUsing(fn ($callback) => $callback());
+        $connection->shouldReceive('escape')->andReturnUsing(fn ($value) => "'" . str_replace(['\\', "'"], ['\\\\', "\\'"], $value) . "'");
+        $connection->shouldReceive('statement')->andReturnUsing(function ($sql) use ($statementResult) {
+            $this->statements[] = preg_replace('/\s+/', ' ', trim($sql));
+
+            return $statementResult;
+        });
+        DB::shouldReceive('connection')->with('tenant_admin')->andReturn($connection);
+
+        return new MySqlDriver('tenant_admin');
+    }
+
+    public function test_setup_creates_database_user_and_grant(): void
+    {
+        $driver = $this->driver();
+        $this->schema->shouldReceive('createDatabase')->once()->with('laravel_alpha');
+
+        $this->assertTrue($driver->setup(self::CONFIG));
+
+        $this->assertSame([
+            "CREATE USER IF NOT EXISTS `laravel_alpha`@'%' IDENTIFIED BY 'secret'",
+            "GRANT ALL ON `laravel_alpha`.* TO `laravel_alpha`@'%'",
+        ], $this->statements);
+    }
+
+    public function test_destroy_revokes_drops_user_and_database(): void
+    {
+        $driver = $this->driver();
+        $this->schema->shouldReceive('dropDatabaseIfExists')->once()->with('laravel_alpha');
+
+        $this->assertTrue($driver->destroy(self::CONFIG));
+
+        $this->assertSame([
+            "REVOKE ALL ON `laravel_alpha`.* FROM `laravel_alpha`@'%'",
+            "DROP USER IF EXISTS `laravel_alpha`@'%'",
+        ], $this->statements);
+    }
+
+    public static function unsafeIdentifiers(): array
+    {
+        return [
+            'backtick in database' => [['database' => 'a`; DROP DATABASE system; --'] + self::CONFIG],
+            'quote in username' => [['username' => "a'@'%' IDENTIFIED BY 'x'; --"] + self::CONFIG],
+            'empty username' => [['username' => ''] + self::CONFIG],
+            'trailing newline' => [['database' => "laravel_alpha\n"] + self::CONFIG],
+            'dot in database' => [['database' => 'laravel_alpha.example'] + self::CONFIG],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('unsafeIdentifiers')]
+    public function test_setup_rejects_unsafe_identifiers_before_running_any_sql(array $config): void
+    {
+        $driver = $this->driver();
+        $this->schema->shouldNotReceive('createDatabase');
+
+        try {
+            $driver->setup($config);
+            $this->fail('Expected unsafe identifier to be rejected');
+        } catch (TenantDatabaseException) {
+            $this->assertSame([], $this->statements);
+        }
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('unsafeIdentifiers')]
+    public function test_destroy_rejects_unsafe_identifiers_before_running_any_sql(array $config): void
+    {
+        $driver = $this->driver();
+        $this->schema->shouldNotReceive('dropDatabaseIfExists');
+
+        try {
+            $driver->destroy($config);
+            $this->fail('Expected unsafe identifier to be rejected');
+        } catch (TenantDatabaseException) {
+            $this->assertSame([], $this->statements);
+        }
+    }
+
+    public function test_setup_accepts_hyphenated_identifiers(): void
+    {
+        $driver = $this->driver();
+        $this->schema->shouldReceive('createDatabase')->once()->with('laravel_alpha-1');
+
+        $driver->setup(['database' => 'laravel_alpha-1', 'username' => 'laravel_alpha-1'] + self::CONFIG);
+
+        $this->assertSame("GRANT ALL ON `laravel_alpha-1`.* TO `laravel_alpha-1`@'%'", $this->statements[1]);
+    }
+
+    public function test_setup_quotes_the_password(): void
+    {
+        $driver = $this->driver();
+        $this->schema->shouldReceive('createDatabase');
+
+        $driver->setup(['password' => "p'w"] + self::CONFIG);
+
+        $this->assertSame("CREATE USER IF NOT EXISTS `laravel_alpha`@'%' IDENTIFIED BY 'p\\'w'", $this->statements[0]);
+    }
+
+    public function test_setup_fails_when_a_statement_fails(): void
+    {
+        $driver = $this->driver(statementResult: false);
+        $this->schema->shouldReceive('createDatabase');
+
+        $this->expectException(TenantDatabaseException::class);
+        $driver->setup(self::CONFIG);
+    }
+}

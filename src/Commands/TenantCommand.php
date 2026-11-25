@@ -6,32 +6,52 @@ use App\Models\System\Tenant;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
+use Sellmate\Laravel\MultiTenant\Exceptions\TenantCommandException;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 
 trait TenantCommand
 {
     protected DatabaseManager $manager;
 
+    /**
+     * The command repoints the default connection and `passport.connection`; restoring both keeps
+     * that from leaking into later work in the same process (queue workers, Artisan::call()).
+     */
+    public function run(InputInterface $input, OutputInterface $output): int
+    {
+        $passportConnection = config('passport.connection');
+        $defaultConnection = DB::getDefaultConnection();
+
+        try {
+            return parent::run($input, $output);
+        } finally {
+            config(['passport.connection' => $passportConnection]);
+            DB::setDefaultConnection($defaultConnection);
+        }
+    }
+
     protected function getTenants($setup = true)
     {
         DB::setDefaultConnection($this->manager->systemConnectionName);
 
-        if (Schema::hasTable(Tenant::getTableName())) {
-            $qb = Tenant::where('setup_has_done', $setup);
-            if ($this->option('domain')) {
-                $qb->whereIn(config('multitenancy.tenant-id-column', 'domain'), explode(',', $this->option('domain')));
-            }
-
-            $tenants = $qb->get();
-
-            if (count($tenants) == 0) {
-                $this->error('No available tenants found');
-                exit;
-            }
-            return $tenants;
-        } else {
-            $this->error('tenants table is not exists in system database');
-            exit;
+        if (! Schema::hasTable(Tenant::getTableName())) {
+            throw new TenantCommandException('tenants table does not exist in system database');
         }
+
+        $qb = Tenant::where('setup_has_done', $setup);
+        $domain = $this->option('domain');
+        if ($domain && $domain !== 'all') {
+            $qb->whereIn(config('multitenancy.tenant-id-column', 'domain'), explode(',', $domain));
+        }
+
+        $tenants = $qb->get();
+
+        if ($tenants->isEmpty()) {
+            throw new TenantCommandException('No available tenants found');
+        }
+
+        return $tenants;
     }
 
     protected function setSystemDatabase()
@@ -46,7 +66,7 @@ trait TenantCommand
 
     protected function setDefaultConnection($connectionName)
     {
-        config(['passport.storage.database.connection' => $connectionName]);
+        config(['passport.connection' => $connectionName]);
         if ($this->hasOption('database')) {
             $this->input->setOption('database', $connectionName);
         }

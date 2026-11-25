@@ -4,6 +4,7 @@ namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 
 use Illuminate\Database\Console\Migrations\ResetCommand;
 use Illuminate\Support\Facades\DB;
+use Sellmate\Laravel\MultiTenant\Commands\AddsTenantOptions;
 use Sellmate\Laravel\MultiTenant\Commands\EnvCheck;
 use Sellmate\Laravel\MultiTenant\Commands\TenantCommand;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
@@ -11,7 +12,7 @@ use Symfony\Component\Console\Input\InputOption;
 
 class MigrateResetCommand extends ResetCommand
 {
-    use TenantCommand, EnvCheck;
+    use TenantCommand, EnvCheck, AddsTenantOptions;
 
     /**
      * Create a new migration rollback command instance.
@@ -54,17 +55,12 @@ class MigrateResetCommand extends ResetCommand
         }
     }
 
-    /**
-     * Get the console command options.
-     *
-     * @return array
-     */
-    protected function getOptions()
+    protected function tenantOptions(): array
     {
-        return array_merge([
+        return [
             ['tenant', 'T', InputOption::VALUE_NONE, "Rollback all database migrations for tenant database."],
             ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
-            ['without-root', null, InputOption::VALUE_OPTIONAL, "Run migrations without root migrations. Migrate only path with database name."],
-        ], parent::getOptions());
+            ['without-root', null, InputOption::VALUE_NONE, "Run migrations without root migrations. Migrate only path with database name."],
+        ];
     }
 }

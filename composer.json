@@ -1,6 +1,6 @@
 {
     "name": "sellmate/laravel-multi-tenant",
-    "version": "12.2.1",
+    "version": "13.0.0",
     "license": "MIT",
     "description": "Multi tenant package for Laravel Framework",
     "authors": [
@@ -10,13 +10,22 @@
         }
     ],
     "require": {
-        "php": "^8.2",
-        "laravel/passport": "^12.0"
+        "php": "^8.3",
+        "laravel/framework": "^13.0",
+        "laravel/passport": "^13.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^11.0",
+        "phpunit/phpunit": "^12.5",
         "mockery/mockery": "^1.6",
-        "orchestra/testbench": "^9.0"
+        "orchestra/testbench": "^11.0"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Sellmate\\Laravel\\MultiTenant\\Tests\\": "tests/"
+        },
+        "classmap": [
+            "database/Tenant.php"
+        ]
     },
     "autoload": {
         "psr-4": {
@@ -28,6 +37,11 @@
             "providers": [
                 "Sellmate\\Laravel\\MultiTenant\\Providers\\MultiTenantServiceProvider"
             ]
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": false
         }
     },
     "minimum-stability": "dev",

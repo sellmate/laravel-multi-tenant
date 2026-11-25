@@ -3,13 +3,15 @@
 namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 
 use Illuminate\Database\Console\Migrations\RefreshCommand;
+use Sellmate\Laravel\MultiTenant\Commands\AddsTenantOptions;
+use Sellmate\Laravel\MultiTenant\Commands\EnvCheck;
 use Sellmate\Laravel\MultiTenant\Commands\TenantCommand;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Symfony\Component\Console\Input\InputOption;
 
 class MigrateRefreshCommand extends RefreshCommand
 {
-    use TenantCommand;
+    use TenantCommand, EnvCheck, AddsTenantOptions;
 
     public function __construct()
     {
@@ -92,17 +94,12 @@ class MigrateRefreshCommand extends RefreshCommand
         }
     }
 
-    /**
-     * Get the console command options.
-     *
-     * @return array
-     */
-    protected function getOptions()
+    protected function tenantOptions(): array
     {
-        return array_merge([
+        return [
             ['tenant', 'T', InputOption::VALUE_NONE, "Reset and re-run all migrations for tenant database."],
             ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
-            ['without-root', null, InputOption::VALUE_OPTIONAL, "Run migrations without root migrations. Migrate only path with database name."],
-        ], parent::getOptions());
+            ['without-root', null, InputOption::VALUE_NONE, "Run migrations without root migrations. Migrate only path with database name."],
+        ];
     }
 }
