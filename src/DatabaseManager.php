@@ -18,7 +18,7 @@ class DatabaseManager
 
     protected $tenant;
 
-    public function __construct(Tenant $tenant = NULL)
+    public function __construct(?Tenant $tenant = null)
     {
         $this->systemConnectionName = Config('multitenancy.system-connection', 'system');
         $this->tenantConnectionName = Config('multitenancy.tenant-connection', 'tenant');
