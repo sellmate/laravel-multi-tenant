@@ -48,6 +48,15 @@ class TenantSetupCommand extends Command
     public function handle()
     {
         $tenants = $this->getTenants(false);
+
+        // Verify every tenant before creating any, so a refused host leaves no tenant half set up.
+        // setTenantConnection() only rewrites config; Laravel opens the connection lazily, so the
+        // refused host is never contacted.
+        foreach ($tenants as $tenant) {
+            $this->manager->setTenantConnection($tenant);
+            $this->checkEnv($this->manager->tenantAdminConnectionName);
+        }
+
         $progressBar = $this->output->createProgressBar(count($tenants));
         foreach ($tenants as $tenant) {
             $this->info("Setting up database for '{$tenant->name}'...");

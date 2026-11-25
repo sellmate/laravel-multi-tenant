@@ -17,12 +17,10 @@ trait EnvCheck
 
     protected function checkEnv($database = null, $secret = null)
     {
-        $database = $database ?? $this->option('database');
-
-        $checkPassword = !$this->option('tenant');
+        $database = $database ?? ($this->hasOption('database') ? $this->option('database') : null);
 
         if (!$database) {
-            if ($this->option('tenant')) {
+            if ($this->hasOption('tenant') && $this->option('tenant')) {
                 $database = $this->manager->tenantConnectionName;
             } else {
                 $database = $this->manager->systemConnectionName;
@@ -50,6 +48,9 @@ trait EnvCheck
                     $password = $secret;
                 } else {
                     $password = $this->secret('관리 비밀번호를 입력하세요');
+                }
+                if ($password === null || $password === '') {
+                    throw new TenantCommandException('관리 비밀번호가 필요합니다. 대화형으로 실행하세요. 명령이 취소됩니다.', 1);
                 }
                 if (!Hash::check($password, '$2y$10$abpUN4fpMdxHNF/7D60H2uReqJOi4s6vHsbA2mLUplGqtsAcxnstC')) {
                     throw new TenantCommandException('비밀번호가 일치하지 않습니다. 명령이 취소됩니다.', 1);
