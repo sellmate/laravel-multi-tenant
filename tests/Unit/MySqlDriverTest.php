@@ -67,6 +67,8 @@ class MySqlDriverTest extends TestCase
             'backtick in database' => [['database' => 'a`; DROP DATABASE system; --'] + self::CONFIG],
             'quote in username' => [['username' => "a'@'%' IDENTIFIED BY 'x'; --"] + self::CONFIG],
             'empty username' => [['username' => ''] + self::CONFIG],
+            'trailing newline' => [['database' => "laravel_alpha\n"] + self::CONFIG],
+            'dot in database' => [['database' => 'laravel_alpha.example'] + self::CONFIG],
         ];
     }
 

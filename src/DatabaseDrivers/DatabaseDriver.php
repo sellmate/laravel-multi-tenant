@@ -31,13 +31,17 @@ class DatabaseDriver
     }
 
     /**
-     * Database and account names are interpolated into DDL, which cannot bind identifiers.
-     *
-     * @throws TenantDatabaseException when the name contains anything but letters, digits, underscores and hyphens
+     * Characters allowed in database and account names, which are interpolated into DDL because
+     * DDL cannot bind identifiers. MySQL database names cannot contain dots.
+     */
+    protected string $identifierPattern = '/^[A-Za-z0-9_-]+\z/';
+
+    /**
+     * @throws TenantDatabaseException when the name does not match $identifierPattern
      */
     protected function identifier(string $name): string
     {
-        if (! preg_match('/^[A-Za-z0-9_-]+$/', $name)) {
+        if (! preg_match($this->identifierPattern, $name)) {
             throw new TenantDatabaseException("Invalid database identifier '{$name}'");
         }
 

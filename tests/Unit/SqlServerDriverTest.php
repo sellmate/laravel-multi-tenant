@@ -44,6 +44,7 @@ class SqlServerDriverTest extends TestCase
         return [
             'bracket in database' => [['database' => 'a]; DROP DATABASE [system'] + self::CONFIG],
             'quote in username' => [['username' => "a'; DROP LOGIN sa; --"] + self::CONFIG],
+            'trailing newline' => [['username' => "laravel_alpha\n"] + self::CONFIG],
         ];
     }
 
@@ -64,6 +65,15 @@ class SqlServerDriverTest extends TestCase
         }
 
         $this->assertSame([], $this->statements);
+    }
+
+    public function test_setup_accepts_dotted_identifiers(): void
+    {
+        $this->schema->shouldReceive('createDatabase')->once()->with('laravel_shop.example');
+
+        (new SqlServerDriver('tenant_admin'))->setup(['database' => 'laravel_shop.example', 'username' => 'laravel_shop.example'] + self::CONFIG);
+
+        $this->assertStringContainsString('CREATE LOGIN [laravel_shop.example]', $this->statements[0]);
     }
 
     public function test_setup_quotes_the_password(): void

@@ -6,6 +6,9 @@ use Sellmate\Laravel\MultiTenant\Exceptions\TenantDatabaseException;
 
 class SqlServerDriver extends DatabaseDriver
 {
+    // Dots are safe inside [bracketed] identifiers.
+    protected string $identifierPattern = '/^[A-Za-z0-9_.-]+\z/';
+
     public function setup(array $config)
     {
         $database = $this->identifier($config['database']);
