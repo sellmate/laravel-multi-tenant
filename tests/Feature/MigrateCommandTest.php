@@ -72,6 +72,15 @@ class MigrateCommandTest extends TestCase
         $this->assertTrue(Schema::connection('system')->hasTable('widgets'));
     }
 
+    public function test_refresh_runs_on_system_connection(): void
+    {
+        $this->artisan('migrate', ['--path' => $this->fixturePath('ok'), '--realpath' => true])->assertSuccessful();
+
+        $this->artisan('migrate:refresh', ['--path' => $this->fixturePath('ok'), '--realpath' => true])->assertSuccessful();
+
+        $this->assertTrue(Schema::connection('system')->hasTable('widgets'));
+    }
+
     public function test_graceful_turns_a_failing_migration_into_success(): void
     {
         $this->artisan('migrate', ['--path' => $this->fixturePath('failing'), '--realpath' => true, '--graceful' => true])

@@ -2,11 +2,9 @@
 
 namespace Sellmate\Laravel\MultiTenant\Commands;
 
-use App\Models\System\Tenant;
 use Illuminate\Console\Command;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Sellmate\Laravel\MultiTenant\Exceptions\TenantCommandException;
-use Throwable;
 
 class TenantSetupCommand extends Command
 {
@@ -57,36 +55,26 @@ class TenantSetupCommand extends Command
             $this->manager->setTenantConnection($tenant);
             $this->manager->setupTenant();
 
-            // migrate --tenant only targets tenants whose setup is done, so mark it before migrating.
+            // setup_has_done means the database and account exist. Tenant commands only target such
+            // tenants, so it is set before migrating and kept if migrating fails: `migrate --tenant`
+            // can then retry and `tenant:destroy` can clean up.
             $tenant->setup_has_done = true;
             $tenant->save();
 
             if ($this->option('migrate')) {
-                try {
-                    $exitCode = $this->call('migrate', [
-                        '--tenant' => true,
-                        '--domain' => $tenant->{config('multitenancy.tenant-id-column', 'domain')},
-                        '--force' => true,
-                    ]);
-                } catch (Throwable $e) {
-                    $this->markPending($tenant);
-                    throw $e;
-                }
+                $exitCode = $this->call('migrate', [
+                    '--tenant' => true,
+                    '--domain' => $tenant->{config('multitenancy.tenant-id-column', 'domain')},
+                    '--force' => true,
+                ]);
 
                 if ($exitCode !== self::SUCCESS) {
-                    $this->markPending($tenant);
-                    throw new TenantCommandException("Migration failed for '{$tenant->name}'");
+                    throw new TenantCommandException("Migration failed for '{$tenant->name}'. Retry with migrate --tenant.");
                 }
             }
 
             $progressBar->advance();
             $this->info("  Database and user for '{$tenant->name}' created successfully.");
         }
-    }
-
-    private function markPending(Tenant $tenant): void
-    {
-        $tenant->setup_has_done = false;
-        $tenant->save();
     }
 }

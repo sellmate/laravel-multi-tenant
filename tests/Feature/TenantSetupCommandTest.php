@@ -19,7 +19,7 @@ class TenantSetupCommandTest extends TestCase
         $this->assertTrue($this->tenantDatabase('alpha')->getSchemaBuilder()->hasTable('migrations'));
     }
 
-    public function test_setup_leaves_the_tenant_pending_when_migrate_fails(): void
+    public function test_failed_migrate_fails_setup_but_keeps_the_created_database_reachable(): void
     {
         $this->migrateSystemTenantsTable();
         Tenant::create(['domain' => 'alpha', 'name' => 'alpha', 'db_host' => '127.0.0.1', 'setup_has_done' => false]);
@@ -32,6 +32,7 @@ class TenantSetupCommandTest extends TestCase
             $this->assertSame('fixture migration failure', $e->getMessage());
         }
 
-        $this->assertFalse(Tenant::where('domain', 'alpha')->first()->setup_has_done);
+        // The database exists, so tenant commands (migrate --tenant to retry, tenant:destroy to clean up) must still find it.
+        $this->assertTrue(Tenant::where('domain', 'alpha')->first()->setup_has_done);
     }
 }

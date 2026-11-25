@@ -4,13 +4,14 @@ namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 
 use Illuminate\Database\Console\Migrations\RefreshCommand;
 use Sellmate\Laravel\MultiTenant\Commands\AddsTenantOptions;
+use Sellmate\Laravel\MultiTenant\Commands\EnvCheck;
 use Sellmate\Laravel\MultiTenant\Commands\TenantCommand;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Symfony\Component\Console\Input\InputOption;
 
 class MigrateRefreshCommand extends RefreshCommand
 {
-    use TenantCommand, AddsTenantOptions;
+    use TenantCommand, EnvCheck, AddsTenantOptions;
 
     public function __construct()
     {
