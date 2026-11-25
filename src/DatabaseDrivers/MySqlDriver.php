@@ -37,9 +37,14 @@ class MySqlDriver extends DatabaseDriver
         $database = $this->identifier($config['database']);
         $username = $this->identifier($config['username']);
 
-        if (!$this->connection->statement(<<<SQL
-            DROP USER IF EXISTS `{$username}`@'%'
-        SQL)) throw new TenantDatabaseException("Could not drop user '{$username}'");
+        try {
+            $dropped = $this->connection->statement(<<<SQL
+                DROP USER IF EXISTS `{$username}`@'%'
+            SQL);
+        } catch (\Throwable $th) {
+            throw new TenantDatabaseException("Could not drop user '{$username}'", 0, $th);
+        }
+        if (!$dropped) throw new TenantDatabaseException("Could not drop user '{$username}'");
 
         $this->dropDatabase($database);
 

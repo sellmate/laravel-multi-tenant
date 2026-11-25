@@ -63,10 +63,11 @@ class MySqlDriverTest extends TestCase
     public function test_destroy_can_be_rerun_after_failing_partway(): void
     {
         $userExists = true;
-        $databaseDropAttempts = 0;
+        $steps = [];
         $this->schema = Mockery::mock(Builder::class);
-        $this->schema->shouldReceive('dropDatabaseIfExists')->with('laravel_alpha')->andReturnUsing(function () use (&$databaseDropAttempts) {
-            if (++$databaseDropAttempts === 1) {
+        $this->schema->shouldReceive('dropDatabaseIfExists')->with('laravel_alpha')->andReturnUsing(function () use (&$steps) {
+            $steps[] = 'drop database';
+            if (count(array_keys($steps, 'drop database')) === 1) {
                 throw new \RuntimeException('metadata lock wait timeout');
             }
 
@@ -74,13 +75,13 @@ class MySqlDriverTest extends TestCase
         });
         $connection = Mockery::mock(Connection::class);
         $connection->shouldReceive('getSchemaBuilder')->andReturn($this->schema);
-        $connection->shouldReceive('transaction')->andReturnUsing(fn ($callback) => $callback());
         // Mirrors MySQL: REVOKE fails once the account is gone (1141), DROP USER IF EXISTS never does.
-        $connection->shouldReceive('statement')->andReturnUsing(function ($sql) use (&$userExists) {
+        $connection->shouldReceive('statement')->andReturnUsing(function ($sql) use (&$userExists, &$steps) {
             if (str_contains($sql, 'REVOKE') && ! $userExists) {
                 throw new \RuntimeException('SQLSTATE[42000]: 1141 There is no such grant defined');
             }
             if (str_contains($sql, 'DROP USER')) {
+                $steps[] = 'drop user';
                 $userExists = false;
             }
 
@@ -97,7 +98,24 @@ class MySqlDriverTest extends TestCase
         }
 
         $this->assertTrue($driver->destroy(self::CONFIG));
-        $this->assertSame(2, $databaseDropAttempts);
+        $this->assertSame(['drop user', 'drop database', 'drop user', 'drop database'], $steps);
+    }
+
+    public function test_destroy_wraps_a_failing_drop_user(): void
+    {
+        $this->schema = Mockery::mock(Builder::class);
+        $this->schema->shouldNotReceive('dropDatabaseIfExists');
+        $connection = Mockery::mock(Connection::class);
+        $connection->shouldReceive('getSchemaBuilder')->andReturn($this->schema);
+        $connection->shouldReceive('statement')->andThrow(new \RuntimeException('access denied for CREATE USER'));
+        DB::shouldReceive('connection')->with('tenant_admin')->andReturn($connection);
+
+        try {
+            (new MySqlDriver('tenant_admin'))->destroy(self::CONFIG);
+            $this->fail('Expected destroy to fail');
+        } catch (TenantDatabaseException $e) {
+            $this->assertSame('access denied for CREATE USER', $e->getPrevious()?->getMessage());
+        }
     }
 
     public static function unsafeIdentifiers(): array
