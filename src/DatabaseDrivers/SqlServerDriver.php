@@ -122,11 +122,13 @@ class SqlServerDriver extends DatabaseDriver
                         BREAK;
                     END TRY
                     BEGIN CATCH
-                        SET @attempt += 1;
-                        IF @attempt >= 3
-                            OR ERROR_NUMBER() <> 5069
-                            OR CAST(DATABASEPROPERTYEX(N'{$database}', 'UserAccess') AS nvarchar(20)) <> N'SINGLE_USER'
+                        IF ERROR_NUMBER() <> 5069
+                            OR ISNULL(CAST(DATABASEPROPERTYEX(N'{$database}', 'UserAccess') AS nvarchar(20)), N'') <> N'SINGLE_USER'
                             THROW;
+                        SET @attempt += 1;
+                        -- The caught 5069 does not name the conflict, so say what kept failing.
+                        IF @attempt >= 3
+                            THROW 50000, N'ALTER DATABASE kept failing (5069) on the SINGLE_USER tenant database; another session probably holds its only slot (5064). Run destroy again.', 1;
                         -- Gives a client that reconnects immediately a chance to give up the slot first.
                         WAITFOR DELAY '00:00:00.200';
                     END CATCH;

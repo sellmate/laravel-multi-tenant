@@ -23,11 +23,12 @@ BEGIN
             BREAK;
         END TRY
         BEGIN CATCH
+            IF ERROR_NUMBER() <> 5069
+                OR ISNULL(CAST(DATABASEPROPERTYEX(N'lmt_t24', 'UserAccess') AS nvarchar(20)), N'') <> N'SINGLE_USER'
+                THROW;
             SET @attempt += 1;
             IF @attempt >= 3
-                OR ERROR_NUMBER() <> 5069
-                OR CAST(DATABASEPROPERTYEX(N'lmt_t24', 'UserAccess') AS nvarchar(20)) <> N'SINGLE_USER'
-                THROW;
+                THROW 50000, N'ALTER DATABASE kept failing (5069) on the SINGLE_USER tenant database; another session probably holds its only slot (5064). Run destroy again.', 1;
             WAITFOR DELAY '00:00:00.200';
         END CATCH;
     END;

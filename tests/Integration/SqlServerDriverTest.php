@@ -185,6 +185,13 @@ class SqlServerDriverTest extends TestCase
             END;
             CLOSE helper_sessions;
             DEALLOCATE helper_sessions;
+            -- KILL returns before the session is gone, and DROP LOGIN fails while it is still listed.
+            DECLARE @waited int = 0;
+            WHILE @waited < 50 AND EXISTS (SELECT 1 FROM sys.dm_exec_sessions WHERE login_name = N'{$name}' AND session_id <> @@SPID)
+            BEGIN
+                WAITFOR DELAY '00:00:00.100';
+                SET @waited += 1;
+            END;
             IF SUSER_ID(N'{$name}') IS NOT NULL DROP LOGIN [{$name}];
         SQL);
     }

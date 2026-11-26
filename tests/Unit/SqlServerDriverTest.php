@@ -146,7 +146,9 @@ class SqlServerDriverTest extends TestCase
             'drop database' => "USE [master]; IF DB_ID(N'laravel_alpha') IS NOT NULL BEGIN DECLARE @spid int, @kill nvarchar(30), @attempt int = 0; WHILE 1 = 1 BEGIN "
                 . self::killSessions('database_sessions', "database_id = DB_ID(N'laravel_alpha')")
                 . " BEGIN TRY EXEC(N'ALTER DATABASE [laravel_alpha] SET SINGLE_USER WITH ROLLBACK IMMEDIATE'); BREAK; END TRY"
-                . " BEGIN CATCH SET @attempt += 1; IF @attempt >= 3 OR ERROR_NUMBER() <> 5069 OR CAST(DATABASEPROPERTYEX(N'laravel_alpha', 'UserAccess') AS nvarchar(20)) <> N'SINGLE_USER' THROW;"
+                . " BEGIN CATCH IF ERROR_NUMBER() <> 5069 OR ISNULL(CAST(DATABASEPROPERTYEX(N'laravel_alpha', 'UserAccess') AS nvarchar(20)), N'') <> N'SINGLE_USER' THROW;"
+                . " SET @attempt += 1; -- The caught 5069 does not name the conflict, so say what kept failing."
+                . " IF @attempt >= 3 THROW 50000, N'ALTER DATABASE kept failing (5069) on the SINGLE_USER tenant database; another session probably holds its only slot (5064). Run destroy again.', 1;"
                 . " -- Gives a client that reconnects immediately a chance to give up the slot first. WAITFOR DELAY '00:00:00.200'; END CATCH; END;"
                 . " EXEC(N'DROP DATABASE [laravel_alpha]'); END",
             'drop login' => "IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'laravel_alpha') DROP LOGIN [laravel_alpha]",
@@ -195,9 +197,10 @@ class SqlServerDriverTest extends TestCase
 
         // The kill loop runs again on every attempt, before the ALTER.
         $this->assertMatchesRegularExpression('/WHILE 1 = 1 BEGIN DECLARE database_sessions CURSOR .* BEGIN TRY EXEC\(N\'ALTER DATABASE/', $dropDatabase);
-        $this->assertStringContainsString('IF @attempt >= 3', $dropDatabase);
-        $this->assertStringContainsString('ERROR_NUMBER() <> 5069', $dropDatabase);
-        $this->assertStringContainsString("DATABASEPROPERTYEX(N'laravel_alpha', 'UserAccess')", $dropDatabase);
+        // Any other error is rethrown at once, before counting or waiting.
+        $this->assertMatchesRegularExpression("/BEGIN CATCH IF ERROR_NUMBER\\(\\) <> 5069 OR ISNULL\\(CAST\\(DATABASEPROPERTYEX\\(N'laravel_alpha', 'UserAccess'\\) .* THROW; SET @attempt/", $dropDatabase);
+        // Running out of attempts names the slot conflict instead of the generic 5069.
+        $this->assertStringContainsString("IF @attempt >= 3 THROW 50000, N'ALTER DATABASE kept failing (5069)", $dropDatabase);
         // DROP DATABASE runs only after the loop has left through BREAK.
         $this->assertGreaterThan(strpos($dropDatabase, 'BREAK;'), strpos($dropDatabase, "EXEC(N'DROP DATABASE"));
     }
