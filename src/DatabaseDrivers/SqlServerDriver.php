@@ -18,26 +18,26 @@ class SqlServerDriver extends DatabaseDriver
         $this->createDatabase($database);
 
         return $this->connection->transaction(function () use ($database, $username, $password) {
-            if (!$this->connection->statement(<<<SQL
+            $this->run(<<<SQL
                 CREATE LOGIN [{$username}] WITH
                     PASSWORD=N{$password},
                     DEFAULT_DATABASE=[{$database}],
                     DEFAULT_LANGUAGE=[한국어],
                     CHECK_EXPIRATION=OFF,
                     CHECK_POLICY=ON
-            SQL)) throw new TenantDatabaseException("Could not create login '{$username}'");
+            SQL, "Could not create login '{$username}'");
 
-            if (!$this->connection->statement(<<<SQL
+            $this->run(<<<SQL
                 USE [{$database}];
                 CREATE USER [{$username}]
                     FOR LOGIN [{$username}];
-            SQL)) throw new TenantDatabaseException("Could not create user '{$username}'");
+            SQL, "Could not create user '{$username}'");
 
-            if (!$this->connection->statement(<<<SQL
+            $this->run(<<<SQL
                 USE [{$database}];
                 ALTER ROLE [db_owner]
                     ADD MEMBER [{$username}];
-            SQL)) throw new TenantDatabaseException("Could not grant privileges to user '{$username}' for '{$database}'");
+            SQL, "Could not grant privileges to user '{$username}' for '{$database}'");
 
             return true;
         });
@@ -55,6 +55,23 @@ class SqlServerDriver extends DatabaseDriver
     {
         $database = $this->identifier($config['database']);
         $username = $this->identifier($config['username']);
+
+        // Every later step is guarded by IF EXISTS / DB_ID checks, and SQL Server hides other logins, other
+        // sessions and databases from a login without these permissions, so without this check destroy()
+        // would skip every step and report success. HAS_PERMS_BY_NAME returns NULL for a securable it cannot
+        // resolve, which counts as missing. USE [master] because setup() leaves the shared connection in the
+        // tenant database, and every later step runs in this context.
+        $this->run(<<<SQL
+            USE [master];
+            IF ISNULL(HAS_PERMS_BY_NAME(NULL, NULL, 'ALTER ANY LOGIN'), 0) = 0
+                OR ISNULL(HAS_PERMS_BY_NAME(NULL, NULL, 'ALTER ANY CONNECTION'), 0) = 0
+                OR ISNULL(HAS_PERMS_BY_NAME(NULL, NULL, 'VIEW SERVER STATE'), 0) = 0
+                OR ISNULL(HAS_PERMS_BY_NAME(NULL, NULL, 'VIEW ANY DATABASE'), 0) = 0
+                OR (DB_ID(N'{$database}') IS NOT NULL
+                    AND ISNULL(HAS_PERMS_BY_NAME(N'{$database}', 'DATABASE', 'CONTROL'), 0) = 0
+                    AND ISNULL(HAS_PERMS_BY_NAME(NULL, NULL, 'ALTER ANY DATABASE'), 0) = 0)
+                THROW 50000, N'Missing permission: ALTER ANY LOGIN, ALTER ANY CONNECTION, VIEW SERVER STATE, VIEW ANY DATABASE, and CONTROL on the tenant database or ALTER ANY DATABASE are required.', 1;
+        SQL, "Could not destroy tenant '{$database}': the tenant admin login lacks permissions");
 
         // Disabled first so the tenant app cannot reconnect between ending its sessions and DROP LOGIN.
         $this->run(<<<SQL
@@ -113,11 +130,27 @@ class SqlServerDriver extends DatabaseDriver
         SQL;
     }
 
+    /**
+     * Runs a batch on the raw PDO connection and reads every result set: pdo_sqlsrv reports an error
+     * raised after the first statement of a batch only when its result set is reached, which
+     * Connection::statement() never does.
+     */
     private function run(string $sql, string $failure): void
     {
+        $statement = null;
         try {
-            $succeeded = $this->connection->statement($sql);
+            $statement = $this->connection->getPdo()->prepare($sql);
+            $succeeded = $statement->execute();
+            while ($succeeded && $statement->nextRowset()) {
+            }
+            $statement->closeCursor();
         } catch (\Throwable $th) {
+            // Leaves no pending result set on the shared connection. The batch has already failed, so an
+            // error while closing must not replace $th as the reported cause.
+            try {
+                $statement?->closeCursor();
+            } catch (\Throwable) {
+            }
             throw new TenantDatabaseException($failure, 0, $th);
         }
         if (!$succeeded) {
