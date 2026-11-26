@@ -7,12 +7,13 @@ use Illuminate\Database\Console\Seeds\SeedCommand as BaseCommand;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Sellmate\Laravel\MultiTenant\Commands\AddsTenantOptions;
+use Sellmate\Laravel\MultiTenant\Commands\RunsForEachTenant;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Symfony\Component\Console\Input\InputOption;
 
 class SeedCommand extends BaseCommand
 {
-    use AddsTenantOptions;
+    use AddsTenantOptions, RunsForEachTenant;
 
     /**
      * Execute the console command.
@@ -43,25 +44,29 @@ class SeedCommand extends BaseCommand
                 $bar = $this->output->createProgressBar(count($tenants));
             }
 
-            foreach ($tenants as $tenant) {
-                $this->info('');
-                $this->info("Seeding to '{$tenant->name}'...");
+            try {
+                $this->forEachTenant($tenants, function ($tenant) use ($manager, $drawBar, &$bar) {
+                    $this->info('');
+                    $this->info("Seeding to '{$tenant->name}'...");
 
-                $manager->setTenantConnection($tenant);
-                $this->resolver->setDefaultConnection($manager->tenantConnectionName);
+                    $manager->setTenantConnection($tenant);
+                    $this->resolver->setDefaultConnection($manager->tenantConnectionName);
 
-                Model::unguarded(function () {
-                    $this->getSeeder()->__invoke();
+                    Model::unguarded(function () {
+                        $this->getSeeder()->__invoke();
+                    });
+
+                    if ($drawBar) {
+                        $bar->advance();
+                    }
+
+                    $this->info(($drawBar ? '  ' : '') . "Seed '{$tenant->name}' succeed.");
                 });
-
+            } finally {
                 if ($drawBar) {
-                    $bar->advance();
+                    $bar->finish();
+                    $this->newLine();
                 }
-
-                $this->info(($drawBar ? '  ' : '') . "Seed '{$tenant->name}' succeed.");
-            }
-            if ($drawBar) {
-                $bar->finish();
             }
 
         } else {
@@ -80,6 +85,7 @@ class SeedCommand extends BaseCommand
         return [
             ['tenant', 'T', InputOption::VALUE_NONE, "Seed the database with records for tenant database."],
             ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
+            $this->continueOnErrorOption(),
         ];
     }
 }

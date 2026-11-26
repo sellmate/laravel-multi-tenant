@@ -129,6 +129,22 @@ php artisan migrate --tenant --domain=alpha,beta
 php artisan make:migration create_orders_table --tenant
 ```
 
+### 한 테넌트가 실패하면
+
+여러 테넌트를 도는 명령(`migrate*`, `db:seed`, `passport:*`, `tenant:setup`, `tenant:destroy`)은 기본으로 **첫 실패에서 멈추고** 그 테넌트의 오류를 그대로 냅니다. 멈추기 전에 어느 테넌트에서 멈췄는지와 실행하지 않은 테넌트 목록을 출력합니다.
+
+`--continue-on-error`를 주면 실패한 테넌트의 오류를 출력·로그(`report()`)에 남기고 나머지 테넌트를 계속 처리합니다. 하나라도 실패했으면 마지막에 실패한 테넌트 목록을 알려주고 0이 아닌 종료 코드로 끝납니다.
+
+```bash
+php artisan migrate --tenant --continue-on-error
+# ...
+# 2 of 40 tenants failed: beta,omega
+php artisan migrate --tenant --domain=beta,omega   # 원인을 고친 뒤 실패한 테넌트만 다시
+```
+
+- 실행 환경 검증 실패(관리 비밀번호 불일치, 개발 환경에서 운영 DB 접근)는 `--continue-on-error`와 관계없이 바로 멈춥니다.
+- `migrate --graceful --continue-on-error`는 실패한 테넌트를 출력하고 종료 코드 0으로 끝납니다.
+
 ### 마이그레이션 경로
 
 | 대상 | 경로 |
@@ -196,11 +212,11 @@ php artisan make:migration create_orders_table --tenant
 
    password grant는 Passport 12부터 기본으로 꺼져 있습니다. `passport:install --tenant`가 만드는 password grant 클라이언트를 쓰려면 `AppServiceProvider::boot()`에서 `Passport::enablePasswordGrant()`를 호출하세요.
 
-5. 만료·폐기 토큰 정리도 테넌트별로 실행합니다.
+5. 만료·폐기 토큰 정리도 테넌트별로 실행합니다. 접속할 수 없는 테넌트가 하나 있어도 나머지는 정리되도록 `--continue-on-error`를 붙입니다.
 
    ```php
    // routes/console.php
-   Schedule::command('passport:purge --tenant')->daily();
+   Schedule::command('passport:purge --tenant --continue-on-error')->daily();
    ```
 
 ## 설정

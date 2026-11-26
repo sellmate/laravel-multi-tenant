@@ -5,6 +5,7 @@ namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 use Illuminate\Database\Console\Migrations\ResetCommand;
 use Illuminate\Support\Facades\DB;
 use Sellmate\Laravel\MultiTenant\Commands\AddsTenantOptions;
+use Sellmate\Laravel\MultiTenant\Commands\RunsForEachTenant;
 use Sellmate\Laravel\MultiTenant\Commands\EnvCheck;
 use Sellmate\Laravel\MultiTenant\Commands\TenantCommand;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
@@ -12,7 +13,7 @@ use Symfony\Component\Console\Input\InputOption;
 
 class MigrateResetCommand extends ResetCommand
 {
-    use TenantCommand, EnvCheck, AddsTenantOptions;
+    use TenantCommand, EnvCheck, AddsTenantOptions, RunsForEachTenant;
 
     /**
      * Create a new migration rollback command instance.
@@ -40,13 +41,13 @@ class MigrateResetCommand extends ResetCommand
             $tenants = $this->getTenants();
             $progressBar = $this->output->createProgressBar(count($tenants));
             $this->setTenantDatabase();
-            foreach ($tenants as $tenant) {
+            $this->forEachTenant($tenants, function ($tenant) use ($progressBar) {
                 $this->manager->setTenantConnection($tenant);
                 $this->checkEnv($this->manager->tenantConnectionName, $this->option('secret'));
                 $this->info("Resetting migrations for '{$tenant->name}'...");
                 $progressBar->advance();
                 parent::handle();
-            }
+            });
         } else {
             $database = $this->option('database') ?? 'system';
             $this->setDefaultConnection($database);
@@ -62,6 +63,7 @@ class MigrateResetCommand extends ResetCommand
             ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
             ['without-root', null, InputOption::VALUE_NONE, "Run migrations without root migrations. Migrate only path with database name."],
             ['secret', null, InputOption::VALUE_OPTIONAL, 'Secret for production'],
+            $this->continueOnErrorOption(),
         ];
     }
 }

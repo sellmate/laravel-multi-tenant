@@ -5,13 +5,14 @@ namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 use Illuminate\Database\Console\Migrations\InstallCommand;
 use Illuminate\Support\Facades\DB;
 use Sellmate\Laravel\MultiTenant\Commands\AddsTenantOptions;
+use Sellmate\Laravel\MultiTenant\Commands\RunsForEachTenant;
 use Sellmate\Laravel\MultiTenant\Commands\TenantCommand;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Symfony\Component\Console\Input\InputOption;
 
 class MigrateInstallCommand extends InstallCommand
 {
-    use TenantCommand, AddsTenantOptions;
+    use TenantCommand, AddsTenantOptions, RunsForEachTenant;
 
     /**
      * Create a new migration install command instance.
@@ -39,13 +40,13 @@ class MigrateInstallCommand extends InstallCommand
             $tenants = $this->getTenants();
             $progressBar = $this->output->createProgressBar(count($tenants));
             $this->setTenantDatabase();
-            foreach ($tenants as $tenant) {
+            $this->forEachTenant($tenants, function ($tenant) use ($progressBar) {
                 $this->manager->setTenantConnection($tenant);
                 // $this->checkEnv($this->manager->tenantConnectionName);
                 $this->info("Creating migration table for '{$tenant->name}' database...");
                 $progressBar->advance();
                 parent::handle();
-            }
+            });
         } else {
             $database = $this->option('database') ?? 'system';
             $this->setDefaultConnection($database);
@@ -60,6 +61,7 @@ class MigrateInstallCommand extends InstallCommand
             ['tenant', 'T', InputOption::VALUE_NONE, "Create the migration repository for tenant database."],
             ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
             ['without-root', null, InputOption::VALUE_NONE, "Run migrations without root migrations. Migrate only path with database name."],
+            $this->continueOnErrorOption(),
         ];
     }
 }

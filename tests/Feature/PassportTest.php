@@ -239,6 +239,24 @@ class PassportTest extends TestCase
         $this->assertSame(1, $this->tenantDatabase('beta')->table('oauth_access_tokens')->count());
     }
 
+    public function test_purge_with_continue_on_error_purges_the_tenants_after_a_failing_one(): void
+    {
+        $this->setUpTenants('alpha', 'beta', 'gamma');
+        $this->insertRevokedAccessToken('alpha');
+        $this->insertRevokedAccessToken('gamma');
+        $this->tenantDatabase('beta')->getSchemaBuilder()->drop('oauth_access_tokens');
+
+        try {
+            \Illuminate\Support\Facades\Artisan::call('passport:purge', ['--tenant' => true, '--revoked' => true, '--continue-on-error' => true]);
+            $this->fail('Expected the run to fail at the end');
+        } catch (\Sellmate\Laravel\MultiTenant\Exceptions\TenantsFailedException $e) {
+            $this->assertSame(['beta'], $e->failedTenants);
+        }
+
+        $this->assertSame(0, $this->tenantDatabase('alpha')->table('oauth_access_tokens')->count());
+        $this->assertSame(0, $this->tenantDatabase('gamma')->table('oauth_access_tokens')->count());
+    }
+
     public function test_refresh_tokens_are_persisted_to_the_current_tenant_database(): void
     {
         $this->setUpTenants('alpha');

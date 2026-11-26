@@ -8,7 +8,7 @@ use Sellmate\Laravel\MultiTenant\Exceptions\TenantCommandException;
 
 class TenantSetupCommand extends Command
 {
-    use TenantCommand, EnvCheck;
+    use TenantCommand, EnvCheck, RunsForEachTenant;
 
     protected DatabaseManager $manager;
 
@@ -20,7 +20,8 @@ class TenantSetupCommand extends Command
     protected $signature = "tenant:setup
                             {--domain= : The domain for tenant. 'all' or null value for all tenants.}
                             {--m|migrate : Run migration after setup.}
-                            {--secret= : Secret for production}";
+                            {--secret= : Secret for production}
+                            {--continue-on-error : Keep going with the remaining tenants when one fails; exits non-zero if any failed.}";
 
     /**
      * The console command description.
@@ -59,7 +60,7 @@ class TenantSetupCommand extends Command
         }
 
         $progressBar = $this->output->createProgressBar(count($tenants));
-        foreach ($tenants as $tenant) {
+        $this->forEachTenant($tenants, function ($tenant) use ($progressBar) {
             $this->info("Setting up database for '{$tenant->name}'...");
 
             $this->manager->setTenantConnection($tenant);
@@ -86,6 +87,6 @@ class TenantSetupCommand extends Command
 
             $progressBar->advance();
             $this->info("  Database and user for '{$tenant->name}' created successfully.");
-        }
+        });
     }
 }
