@@ -17,6 +17,21 @@ class SqlServerDriver extends DatabaseDriver
 
         $this->createDatabase($database);
 
+        try {
+            return $this->createLoginAndUser($database, $username, $password);
+        } catch (\Throwable $th) {
+            // A failed step can leave the shared connection in the tenant database (see below). Moving it back
+            // is best-effort: the step's own failure is what the caller must see.
+            try {
+                $this->connection->getPdo()->exec('USE [master]');
+            } catch (\Throwable) {
+            }
+            throw $th;
+        }
+    }
+
+    private function createLoginAndUser(string $database, string $username, string $password): bool
+    {
         return $this->connection->transaction(function () use ($database, $username, $password) {
             $this->run(<<<SQL
                 CREATE LOGIN [{$username}] WITH
@@ -33,10 +48,13 @@ class SqlServerDriver extends DatabaseDriver
                     FOR LOGIN [{$username}];
             SQL, "Could not create user '{$username}'");
 
+            // Ends in master: a connection left in the tenant database is cut off by any later
+            // ALTER DATABASE ... WITH ROLLBACK IMMEDIATE on it (e.g. destroy()).
             $this->run(<<<SQL
                 USE [{$database}];
                 ALTER ROLE [db_owner]
                     ADD MEMBER [{$username}];
+                USE [master];
             SQL, "Could not grant privileges to user '{$username}' for '{$database}'");
 
             return true;
@@ -46,8 +64,8 @@ class SqlServerDriver extends DatabaseDriver
     /**
      * Idempotent: safe to run again after a partial failure (an already-dropped login or database is not an error).
      * Ends the tenant login's sessions and any other session in the tenant database. The login is disabled
-     * first and stays disabled if a later step fails. If the database is already SINGLE_USER and another
-     * session takes its slot between the kills and the ALTER, the drop fails (5064); running it again succeeds.
+     * first and stays disabled if a later step fails. If another session keeps taking the only slot of a
+     * SINGLE_USER tenant database, the drop is retried a few times and then fails; running it again succeeds.
      *
      * @throws TenantDatabaseException when a step fails
      */
@@ -78,22 +96,41 @@ class SqlServerDriver extends DatabaseDriver
             IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'{$username}') ALTER LOGIN [{$username}] DISABLE
         SQL, "Could not disable login '{$username}'");
 
-        $this->run(
-            $this->killSessions('tenant_sessions', "login_name = N'{$username}'"),
-            "Could not end sessions of login '{$username}'"
-        );
+        $killTenantSessions = $this->killSessions('tenant_sessions', "login_name = N'{$username}'");
+        $this->run(<<<SQL
+            DECLARE @spid int, @kill nvarchar(30);
+            {$killTenantSessions}
+        SQL, "Could not end sessions of login '{$username}'");
 
         // The database user is not dropped separately: it is removed with the database, and dropping it
         // would need USE [db], which another session holding a SINGLE_USER database can block.
-        // ROLLBACK IMMEDIATE does not evict the holder of a SINGLE_USER database (ALTER fails with 5064),
-        // so every session in the database is killed first and the drop follows in the same batch.
+        // ROLLBACK IMMEDIATE does not evict the holder of a SINGLE_USER database (5064), so every session in
+        // the database is killed first. Another session can still take the slot before the ALTER; that is
+        // retried a bounded number of times. TRY/CATCH sees 5064 only as the generic 5069 that follows it, so
+        // the retry also requires the database to be SINGLE_USER.
         $killDatabaseSessions = $this->killSessions('database_sessions', "database_id = DB_ID(N'{$database}')");
         $this->run(<<<SQL
             USE [master];
             IF DB_ID(N'{$database}') IS NOT NULL
             BEGIN
-                {$killDatabaseSessions}
-                EXEC(N'ALTER DATABASE [{$database}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE');
+                DECLARE @spid int, @kill nvarchar(30), @attempt int = 0;
+                WHILE 1 = 1
+                BEGIN
+                    {$killDatabaseSessions}
+                    BEGIN TRY
+                        EXEC(N'ALTER DATABASE [{$database}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE');
+                        BREAK;
+                    END TRY
+                    BEGIN CATCH
+                        SET @attempt += 1;
+                        IF @attempt >= 3
+                            OR ERROR_NUMBER() <> 5069
+                            OR CAST(DATABASEPROPERTYEX(N'{$database}', 'UserAccess') AS nvarchar(20)) <> N'SINGLE_USER'
+                            THROW;
+                        -- Gives a client that reconnects immediately a chance to give up the slot first.
+                        WAITFOR DELAY '00:00:00.200';
+                    END CATCH;
+                END;
                 EXEC(N'DROP DATABASE [{$database}]');
             END
         SQL, "Could not drop database '{$database}'");
@@ -106,14 +143,15 @@ class SqlServerDriver extends DatabaseDriver
     }
 
     /**
-     * T-SQL that kills every other user session matching $condition. System sessions also appear in
-     * sys.dm_exec_sessions (e.g. background tasks in the database) and cannot be killed (6107). A session
-     * can end on its own between being listed and being killed; KILL then fails with 6106, which is ignored.
+     * T-SQL that kills every other user session matching $condition; the batch must declare
+     * `@spid int` and `@kill nvarchar(30)` (once, as this may run inside a loop). System sessions also
+     * appear in sys.dm_exec_sessions (e.g. background tasks in the database) and cannot be killed (6107).
+     * A session can end on its own between being listed and being killed; KILL then fails with 6106,
+     * which is ignored.
      */
     private function killSessions(string $cursor, string $condition): string
     {
         return <<<SQL
-            DECLARE @spid int, @kill nvarchar(30);
             DECLARE {$cursor} CURSOR LOCAL FAST_FORWARD FOR
                 SELECT session_id FROM sys.dm_exec_sessions WHERE {$condition} AND is_user_process = 1 AND session_id <> @@SPID;
             OPEN {$cursor};
