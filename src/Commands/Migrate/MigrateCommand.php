@@ -106,6 +106,19 @@ class MigrateCommand extends BaseMigrateCommand
     }
 
     /**
+     * Laravel's --seed calls db:seed without --database, which would seed the system database
+     * instead of the tenant being migrated.
+     */
+    public function call($command, array $arguments = [])
+    {
+        if ($command === 'db:seed' && $this->option('tenant')) {
+            $arguments['--database'] = $this->manager->tenantConnectionName;
+        }
+
+        return parent::call($command, $arguments);
+    }
+
+    /**
      * Prepare the migration database for running.
      *
      * @return void
