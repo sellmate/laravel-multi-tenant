@@ -4,13 +4,14 @@ namespace Sellmate\Laravel\MultiTenant\Commands\Passport;
 
 use Laravel\Passport\Console\PurgeCommand as BasePurgeCommand;
 use Sellmate\Laravel\MultiTenant\Commands\AddsTenantOptions;
+use Sellmate\Laravel\MultiTenant\Commands\RunsForEachTenant;
 use Sellmate\Laravel\MultiTenant\Commands\TenantCommand;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Symfony\Component\Console\Input\InputOption;
 
 class PurgeCommand extends BasePurgeCommand
 {
-    use TenantCommand, AddsTenantOptions;
+    use TenantCommand, AddsTenantOptions, RunsForEachTenant;
 
     public function __construct()
     {
@@ -24,6 +25,7 @@ class PurgeCommand extends BasePurgeCommand
         return [
             ['tenant', 'T', InputOption::VALUE_NONE, "Purge tokens in tenant databases. Use '--domain' option to specify tenant."],
             ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
+            $this->continueOnErrorOption(),
         ];
     }
 
@@ -38,10 +40,10 @@ class PurgeCommand extends BasePurgeCommand
 
         $tenants = $this->getTenants();
         $this->setTenantDatabase();
-        foreach ($tenants as $tenant) {
+        $this->forEachTenant($tenants, function ($tenant) {
             $this->manager->setTenantConnection($tenant);
             $this->info("Purging tokens for '{$tenant->name}'...");
             parent::handle();
-        }
+        });
     }
 }

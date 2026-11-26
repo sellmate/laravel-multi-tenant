@@ -4,6 +4,7 @@ namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 
 use Illuminate\Database\Console\Migrations\RefreshCommand;
 use Sellmate\Laravel\MultiTenant\Commands\AddsTenantOptions;
+use Sellmate\Laravel\MultiTenant\Commands\RunsForEachTenant;
 use Sellmate\Laravel\MultiTenant\Commands\EnvCheck;
 use Sellmate\Laravel\MultiTenant\Commands\TenantCommand;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
@@ -11,7 +12,7 @@ use Symfony\Component\Console\Input\InputOption;
 
 class MigrateRefreshCommand extends RefreshCommand
 {
-    use TenantCommand, EnvCheck, AddsTenantOptions;
+    use TenantCommand, EnvCheck, AddsTenantOptions, RunsForEachTenant;
 
     public function __construct()
     {
@@ -35,7 +36,7 @@ class MigrateRefreshCommand extends RefreshCommand
             $tenants = $this->getTenants();
             $progressBar = $this->output->createProgressBar(count($tenants));
             $this->setTenantDatabase();
-            foreach ($tenants as $tenant) {
+            $this->forEachTenant($tenants, function ($tenant) use ($progressBar) {
                 $this->manager->setTenantConnection($tenant);
                 $this->checkEnv($this->manager->tenantConnectionName, $this->option('secret'));
                 $this->info("Refreshing migrations for '{$tenant->name}'...");
@@ -92,7 +93,7 @@ class MigrateRefreshCommand extends RefreshCommand
 
                 $progressBar->advance();
                 $this->info("  Migrations for '{$tenant->name}' refreshed.");
-            }
+            });
         } else {
             $database = $this->option('database') ?? 'system';
             $this->checkEnv($database, $this->option('secret'));
@@ -108,6 +109,7 @@ class MigrateRefreshCommand extends RefreshCommand
             ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
             ['without-root', null, InputOption::VALUE_NONE, "Run migrations without root migrations. Migrate only path with database name."],
             ['secret', null, InputOption::VALUE_OPTIONAL, 'Secret for production'],
+            $this->continueOnErrorOption(),
         ];
     }
 }

@@ -7,7 +7,7 @@ use Sellmate\Laravel\MultiTenant\DatabaseManager;
 
 class TenantDestroyCommand extends Command
 {
-    use TenantCommand, EnvCheck;
+    use TenantCommand, EnvCheck, RunsForEachTenant;
 
     protected DatabaseManager $manager;
 
@@ -18,7 +18,8 @@ class TenantDestroyCommand extends Command
      */
     protected $signature = "tenant:destroy
                             {--domain= : The domain for tenant. 'all' or null value for all tenants.}
-                            {--secret= : Secret for production}";
+                            {--secret= : Secret for production}
+                            {--continue-on-error : Keep going with the remaining tenants when one fails; exits non-zero if any failed.}";
 
     /**
      * The console command description.
@@ -49,7 +50,7 @@ class TenantDestroyCommand extends Command
 
         $progressBar = $this->output->createProgressBar(count($tenants));
 
-        foreach ($tenants as $tenant) {
+        $this->forEachTenant($tenants, function ($tenant) use ($progressBar) {
             $this->info("Deleting database and user for '{$tenant->name}'...");
 
             $this->manager->setTenantConnection($tenant);
@@ -61,6 +62,6 @@ class TenantDestroyCommand extends Command
 
             $progressBar->advance();
             $this->info("  Database and user for '{$tenant->name}' deleted successfully.");
-        }
+        });
     }
 }

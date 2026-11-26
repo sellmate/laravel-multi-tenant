@@ -4,13 +4,14 @@ namespace Sellmate\Laravel\MultiTenant\Commands\Migrate;
 
 use Illuminate\Database\Console\Migrations\StatusCommand;
 use Sellmate\Laravel\MultiTenant\Commands\AddsTenantOptions;
+use Sellmate\Laravel\MultiTenant\Commands\RunsForEachTenant;
 use Sellmate\Laravel\MultiTenant\Commands\TenantCommand;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Symfony\Component\Console\Input\InputOption;
 
 class MigrateStatusCommand extends StatusCommand
 {
-    use TenantCommand, AddsTenantOptions;
+    use TenantCommand, AddsTenantOptions, RunsForEachTenant;
 
     /**
      * Create a new migration rollback command instance.
@@ -35,12 +36,12 @@ class MigrateStatusCommand extends StatusCommand
         if ($this->option('tenant')) {
             $tenants = $this->getTenants();
             $this->setTenantDatabase();
-            foreach ($tenants as $tenant) {
+            $this->forEachTenant($tenants, function ($tenant) {
                 $this->manager->setTenantConnection($tenant);
                 $this->info("Migration status for '{$tenant->name}'");
                 parent::handle();
                 $this->info('');
-            }
+            });
         } else {
             $this->setSystemDatabase();
             parent::handle();
@@ -52,6 +53,7 @@ class MigrateStatusCommand extends StatusCommand
         return [
             ['tenant', 'T', InputOption::VALUE_NONE, "Show the status of each migration for tenant database. '--database' option will be ignored. use '--domain' instead."],
             ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
+            $this->continueOnErrorOption(),
         ];
     }
 }

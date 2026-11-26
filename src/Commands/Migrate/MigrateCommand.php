@@ -7,15 +7,17 @@ use Illuminate\Database\Console\Migrations\MigrateCommand as BaseMigrateCommand;
 use Illuminate\Database\Events\SchemaLoaded;
 use Sellmate\Laravel\MultiTenant\Commands\AddsTenantOptions;
 use Sellmate\Laravel\MultiTenant\Commands\EnvCheck;
+use Sellmate\Laravel\MultiTenant\Commands\RunsForEachTenant;
 use Sellmate\Laravel\MultiTenant\Commands\TenantCommand;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Sellmate\Laravel\MultiTenant\Exceptions\TenantCommandException;
+use Sellmate\Laravel\MultiTenant\Exceptions\TenantsFailedException;
 use Symfony\Component\Console\Input\InputOption;
 use Throwable;
 
 class MigrateCommand extends BaseMigrateCommand
 {
-    use TenantCommand, EnvCheck, AddsTenantOptions;
+    use TenantCommand, EnvCheck, AddsTenantOptions, RunsForEachTenant;
 
     protected DatabaseManager $manager;
 
@@ -26,6 +28,7 @@ class MigrateCommand extends BaseMigrateCommand
             ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
             ['without-root', null, InputOption::VALUE_NONE, 'Run migrations without root migrations. Migrate only path with database name.'],
             ['secret', null, InputOption::VALUE_OPTIONAL, 'Secret for production'],
+            $this->continueOnErrorOption(),
         ];
     }
 
@@ -63,20 +66,29 @@ class MigrateCommand extends BaseMigrateCommand
                 $tenants = $this->getTenants();
                 $progressBar = $this->output->createProgressBar(count($tenants));
                 $this->setTenantDatabase();
-                foreach ($tenants as $tenant) {
+                $this->forEachTenant($tenants, function ($tenant) use ($progressBar) {
                     $this->info("Migrating for '{$tenant->{config('multitenancy.tenant-id-column', 'domain')}}'...");
                     $this->manager->setTenantConnection($tenant);
                     $this->checkEnv($this->manager->tenantConnectionName, $this->option('secret'));
                     $progressBar->advance();
                     $this->newLine();
                     parent::handle();
-                }
+                });
             } else {
                 $database = $this->option('database') ?? 'system';
                 $this->setDefaultConnection($database);
                 $this->checkEnv($database, $this->option('secret'));
                 parent::handle();
             }
+        } catch (TenantsFailedException $e) {
+            // Each tenant's migration error was already reported, and --graceful tolerates those.
+            if ($this->option('graceful')) {
+                $this->components->warn($e->getMessage());
+
+                return 0;
+            }
+
+            throw $e;
         } catch (TenantCommandException $e) {
             // --graceful tolerates migration errors, not a refused environment check.
             throw $e;

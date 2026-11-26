@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ConfigurationUrlParser;
 use Illuminate\Support\Facades\Hash;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
-use Sellmate\Laravel\MultiTenant\Exceptions\TenantCommandException;
+use Sellmate\Laravel\MultiTenant\Exceptions\EnvironmentRefusedException;
 
 /**
  * EnvCheck
@@ -50,16 +50,16 @@ trait EnvCheck
                     $password = $this->secret('관리 비밀번호를 입력하세요');
                 }
                 if ($password === null || $password === '') {
-                    throw new TenantCommandException('관리 비밀번호가 필요합니다. 대화형으로 실행하세요. 명령이 취소됩니다.', 1);
+                    throw new EnvironmentRefusedException('관리 비밀번호가 필요합니다. 대화형으로 실행하세요. 명령이 취소됩니다.', 1);
                 }
                 if (!Hash::check($password, '$2y$10$abpUN4fpMdxHNF/7D60H2uReqJOi4s6vHsbA2mLUplGqtsAcxnstC')) {
-                    throw new TenantCommandException('비밀번호가 일치하지 않습니다. 명령이 취소됩니다.', 1);
+                    throw new EnvironmentRefusedException('비밀번호가 일치하지 않습니다. 명령이 취소됩니다.', 1);
                 }
                 Config::set('migration_admin_authenticated', 1);
             }
             // }
         } elseif (! $this->isDevelopmentDatabase($config ?? [])) {
-            throw new TenantCommandException('개발 환경에서 운영DB에 대한 작업을 수행할 수 없습니다! 명령이 취소됩니다.', 2);
+            throw new EnvironmentRefusedException('개발 환경에서 운영DB에 대한 작업을 수행할 수 없습니다! 명령이 취소됩니다.', 2);
         }
         $this->info('수행 환경이 검증되었습니다. 명령을 수행합니다.');
     }

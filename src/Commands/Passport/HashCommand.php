@@ -4,6 +4,7 @@ namespace Sellmate\Laravel\MultiTenant\Commands\Passport;
 
 use Laravel\Passport\Console\HashCommand as BaseHashCommand;
 use Sellmate\Laravel\MultiTenant\Commands\AddsTenantOptions;
+use Sellmate\Laravel\MultiTenant\Commands\RunsForEachTenant;
 use Sellmate\Laravel\MultiTenant\Commands\TenantCommand;
 use Sellmate\Laravel\MultiTenant\DatabaseManager;
 use Sellmate\Laravel\MultiTenant\Exceptions\TenantCommandException;
@@ -11,7 +12,7 @@ use Symfony\Component\Console\Input\InputOption;
 
 class HashCommand extends BaseHashCommand
 {
-    use TenantCommand, AddsTenantOptions;
+    use TenantCommand, AddsTenantOptions, RunsForEachTenant;
 
     public function __construct()
     {
@@ -25,6 +26,7 @@ class HashCommand extends BaseHashCommand
         return [
             ['tenant', 'T', InputOption::VALUE_NONE, "Hash client secrets in tenant databases. Use '--domain' option to specify tenant."],
             ['domain', null, InputOption::VALUE_OPTIONAL, "The domain for tenant. 'all' or null value for all tenants."],
+            $this->continueOnErrorOption(),
         ];
     }
 
@@ -55,10 +57,10 @@ class HashCommand extends BaseHashCommand
         }
 
         $this->setTenantDatabase();
-        foreach ($tenants as $tenant) {
+        $this->forEachTenant($tenants, function ($tenant) {
             $this->manager->setTenantConnection($tenant);
             $this->info("Hashing client secrets for '{$tenant->name}'...");
             parent::handle();
-        }
+        });
     }
 }
