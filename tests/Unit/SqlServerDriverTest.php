@@ -36,11 +36,19 @@ class SqlServerDriverTest extends TestCase
     /** Thrown by PDOStatement::closeCursor(). */
     private ?\Throwable $closeCursorError = null;
 
+    /** SQL passed to PDO::exec() (outside run()). */
+    private array $executedDirectly = [];
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $pdo = Mockery::mock(PDO::class);
+        $pdo->shouldReceive('exec')->andReturnUsing(function (string $sql) {
+            $this->executedDirectly[] = $sql;
+
+            return 0;
+        });
         $pdo->shouldReceive('prepare')->andReturnUsing(function (string $sql) {
             $this->statements[] = preg_replace('/\s+/', ' ', trim($sql));
             $index = count($this->statements) - 1;
@@ -122,7 +130,7 @@ class SqlServerDriverTest extends TestCase
 
     private static function killSessions(string $cursor, string $condition): string
     {
-        return "DECLARE @spid int, @kill nvarchar(30); DECLARE {$cursor} CURSOR LOCAL FAST_FORWARD FOR SELECT session_id FROM sys.dm_exec_sessions WHERE {$condition} AND is_user_process = 1 AND session_id <> @@SPID; OPEN {$cursor}; FETCH NEXT FROM {$cursor} INTO @spid; WHILE @@FETCH_STATUS = 0 BEGIN SET @kill = N'KILL ' + CAST(@spid AS nvarchar(11)); BEGIN TRY EXEC(@kill); END TRY BEGIN CATCH IF ERROR_NUMBER() <> 6106 THROW; END CATCH; FETCH NEXT FROM {$cursor} INTO @spid; END; CLOSE {$cursor}; DEALLOCATE {$cursor};";
+        return "DECLARE {$cursor} CURSOR LOCAL FAST_FORWARD FOR SELECT session_id FROM sys.dm_exec_sessions WHERE {$condition} AND is_user_process = 1 AND session_id <> @@SPID; OPEN {$cursor}; FETCH NEXT FROM {$cursor} INTO @spid; WHILE @@FETCH_STATUS = 0 BEGIN SET @kill = N'KILL ' + CAST(@spid AS nvarchar(11)); BEGIN TRY EXEC(@kill); END TRY BEGIN CATCH IF ERROR_NUMBER() <> 6106 THROW; END CATCH; FETCH NEXT FROM {$cursor} INTO @spid; END; CLOSE {$cursor}; DEALLOCATE {$cursor};";
     }
 
     /**
@@ -134,10 +142,15 @@ class SqlServerDriverTest extends TestCase
         return [
             'permissions' => "USE [master]; IF ISNULL(HAS_PERMS_BY_NAME(NULL, NULL, 'ALTER ANY LOGIN'), 0) = 0 OR ISNULL(HAS_PERMS_BY_NAME(NULL, NULL, 'ALTER ANY CONNECTION'), 0) = 0 OR ISNULL(HAS_PERMS_BY_NAME(NULL, NULL, 'VIEW SERVER STATE'), 0) = 0 OR ISNULL(HAS_PERMS_BY_NAME(NULL, NULL, 'VIEW ANY DATABASE'), 0) = 0 OR (DB_ID(N'laravel_alpha') IS NOT NULL AND ISNULL(HAS_PERMS_BY_NAME(N'laravel_alpha', 'DATABASE', 'CONTROL'), 0) = 0 AND ISNULL(HAS_PERMS_BY_NAME(NULL, NULL, 'ALTER ANY DATABASE'), 0) = 0) THROW 50000, N'Missing permission: ALTER ANY LOGIN, ALTER ANY CONNECTION, VIEW SERVER STATE, VIEW ANY DATABASE, and CONTROL on the tenant database or ALTER ANY DATABASE are required.', 1;",
             'disable' => "IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'laravel_alpha') ALTER LOGIN [laravel_alpha] DISABLE",
-            'kill' => self::killSessions('tenant_sessions', "login_name = N'laravel_alpha'"),
-            'drop database' => "USE [master]; IF DB_ID(N'laravel_alpha') IS NOT NULL BEGIN "
+            'kill' => 'DECLARE @spid int, @kill nvarchar(30); ' . self::killSessions('tenant_sessions', "login_name = N'laravel_alpha'"),
+            'drop database' => "USE [master]; IF DB_ID(N'laravel_alpha') IS NOT NULL BEGIN DECLARE @spid int, @kill nvarchar(30), @attempt int = 0; WHILE 1 = 1 BEGIN "
                 . self::killSessions('database_sessions', "database_id = DB_ID(N'laravel_alpha')")
-                . " EXEC(N'ALTER DATABASE [laravel_alpha] SET SINGLE_USER WITH ROLLBACK IMMEDIATE'); EXEC(N'DROP DATABASE [laravel_alpha]'); END",
+                . " BEGIN TRY EXEC(N'ALTER DATABASE [laravel_alpha] SET SINGLE_USER WITH ROLLBACK IMMEDIATE'); BREAK; END TRY"
+                . " BEGIN CATCH IF ERROR_NUMBER() <> 5069 OR ISNULL(CAST(DATABASEPROPERTYEX(N'laravel_alpha', 'UserAccess') AS nvarchar(20)), N'') <> N'SINGLE_USER' THROW;"
+                . " SET @attempt += 1; -- The caught 5069 does not name the conflict, so say what kept failing."
+                . " IF @attempt >= 3 THROW 50000, N'ALTER DATABASE kept failing (5069) on the SINGLE_USER tenant database; another session probably holds its only slot (5064). Run destroy again.', 1;"
+                . " -- Gives a client that reconnects immediately a chance to give up the slot first. WAITFOR DELAY '00:00:00.200'; END CATCH; END;"
+                . " EXEC(N'DROP DATABASE [laravel_alpha]'); END",
             'drop login' => "IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'laravel_alpha') DROP LOGIN [laravel_alpha]",
         ];
     }
@@ -175,6 +188,21 @@ class SqlServerDriverTest extends TestCase
             $this->assertStringContainsString('session_id <> @@SPID', $statement);
             $this->assertStringContainsString('IF ERROR_NUMBER() <> 6106 THROW;', $statement);
         }
+    }
+
+    public function test_destroy_retries_only_a_single_user_conflict_and_only_a_few_times(): void
+    {
+        (new SqlServerDriver('tenant_admin'))->destroy(self::CONFIG);
+        $dropDatabase = $this->statements[3];
+
+        // The kill loop runs again on every attempt, before the ALTER.
+        $this->assertMatchesRegularExpression('/WHILE 1 = 1 BEGIN DECLARE database_sessions CURSOR .* BEGIN TRY EXEC\(N\'ALTER DATABASE/', $dropDatabase);
+        // Any other error is rethrown at once, before counting or waiting.
+        $this->assertMatchesRegularExpression("/BEGIN CATCH IF ERROR_NUMBER\\(\\) <> 5069 OR ISNULL\\(CAST\\(DATABASEPROPERTYEX\\(N'laravel_alpha', 'UserAccess'\\) .* THROW; SET @attempt/", $dropDatabase);
+        // Running out of attempts names the slot conflict instead of the generic 5069.
+        $this->assertStringContainsString("IF @attempt >= 3 THROW 50000, N'ALTER DATABASE kept failing (5069)", $dropDatabase);
+        // DROP DATABASE runs only after the loop has left through BREAK.
+        $this->assertGreaterThan(strpos($dropDatabase, 'BREAK;'), strpos($dropDatabase, "EXEC(N'DROP DATABASE"));
     }
 
     public function test_destroy_never_switches_into_the_tenant_database(): void
@@ -274,6 +302,31 @@ class SqlServerDriverTest extends TestCase
         } catch (TenantDatabaseException $e) {
             $this->assertSame('CREATE USER failed', $e->getPrevious()?->getMessage());
         }
+    }
+
+    public function test_setup_leaves_the_connection_in_master(): void
+    {
+        $this->schema->shouldReceive('createDatabase')->once();
+
+        (new SqlServerDriver('tenant_admin'))->setup(self::CONFIG);
+
+        $this->assertStringEndsWith('USE [master];', end($this->statements));
+        $this->assertSame([], $this->executedDirectly);
+    }
+
+    public function test_a_failed_setup_still_moves_the_connection_back_to_master(): void
+    {
+        $this->schema->shouldReceive('createDatabase')->once();
+        $this->laterResultSetError = new PDOException('CREATE USER failed');
+
+        try {
+            (new SqlServerDriver('tenant_admin'))->setup(self::CONFIG);
+            $this->fail('Expected setup to fail');
+        } catch (TenantDatabaseException $e) {
+            $this->assertSame('CREATE USER failed', $e->getPrevious()?->getMessage());
+        }
+
+        $this->assertSame(['USE [master]'], $this->executedDirectly);
     }
 
     public function test_setup_quotes_the_password(): void

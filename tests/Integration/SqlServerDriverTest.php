@@ -111,6 +111,13 @@ class SqlServerDriverTest extends TestCase
         $this->assertSame(self::TENANT['database'], $this->connectAsTenant()->selectOne('SELECT DB_NAME() AS name')->name);
     }
 
+    public function test_setup_leaves_the_admin_connection_in_master(): void
+    {
+        $this->driver()->setup(self::TENANT);
+
+        $this->assertSame('master', $this->admin()->selectOne('SELECT DB_NAME() AS name')->name);
+    }
+
     public function test_destroy_removes_everything_and_can_run_again(): void
     {
         $this->driver()->setup(self::TENANT);
@@ -178,6 +185,13 @@ class SqlServerDriverTest extends TestCase
             END;
             CLOSE helper_sessions;
             DEALLOCATE helper_sessions;
+            -- KILL returns before the session is gone, and DROP LOGIN fails while it is still listed.
+            DECLARE @waited int = 0;
+            WHILE @waited < 50 AND EXISTS (SELECT 1 FROM sys.dm_exec_sessions WHERE login_name = N'{$name}' AND session_id <> @@SPID)
+            BEGIN
+                WAITFOR DELAY '00:00:00.100';
+                SET @waited += 1;
+            END;
             IF SUSER_ID(N'{$name}') IS NOT NULL DROP LOGIN [{$name}];
         SQL);
     }
@@ -310,6 +324,69 @@ class SqlServerDriverTest extends TestCase
 
         $this->assertSame(0, (int) $visible);
         $this->assertTrue($this->loginExists());
+    }
+
+    /**
+     * Opens a sysadmin session inside the tenant database and makes it SINGLE_USER from there, so this
+     * session holds the only slot. Returns the connection name; purge it to release the slot.
+     */
+    private function holdSingleUserSlot(): string
+    {
+        config(['database.connections.slot_holder' => $this->sqlServerConfig('sa', getenv('MULTITENANT_SQLSRV_PASSWORD'), self::TENANT['database'])]);
+        DB::purge('slot_holder');
+        $holder = DB::connection('slot_holder');
+        $holder->getPdo()->exec('ALTER DATABASE [' . self::TENANT['database'] . '] SET SINGLE_USER WITH ROLLBACK IMMEDIATE');
+
+        return 'slot_holder';
+    }
+
+    public function test_destroy_evicts_a_session_holding_a_single_user_database(): void
+    {
+        $this->driver()->setup(self::TENANT);
+        $holder = $this->holdSingleUserSlot();
+
+        try {
+            $this->assertTrue($this->driver()->destroy(self::TENANT));
+        } finally {
+            DB::purge($holder);
+        }
+
+        $this->assertGone();
+    }
+
+    /**
+     * Pins why destroy() retries on 5069 rather than 5064: when another session holds the only slot of a
+     * SINGLE_USER database, ALTER DATABASE raises 5064 followed by 5069, and TRY/CATCH sees 5069.
+     */
+    public function test_a_single_user_conflict_reaches_catch_as_5069(): void
+    {
+        $this->driver()->setup(self::TENANT);
+        $holder = $this->holdSingleUserSlot();
+
+        $database = self::TENANT['database'];
+
+        try {
+            $statement = $this->admin()->getPdo()->prepare(<<<SQL
+                SET NOCOUNT ON;
+                USE [master];
+                BEGIN TRY
+                    EXEC(N'ALTER DATABASE [{$database}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE');
+                    SELECT CAST(NULL AS int) AS caught;
+                END TRY
+                BEGIN CATCH
+                    SELECT ERROR_NUMBER() AS caught;
+                END CATCH;
+            SQL);
+            $statement->execute();
+            do {
+                $row = $statement->fetch(\PDO::FETCH_ASSOC);
+            } while ($row === false && $statement->nextRowset());
+            $statement->closeCursor();
+        } finally {
+            DB::purge($holder);
+        }
+
+        $this->assertSame(5069, (int) $row['caught']);
     }
 
     private function rootCause(\Throwable $e): \Throwable

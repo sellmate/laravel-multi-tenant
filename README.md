@@ -40,7 +40,7 @@ php artisan vendor:publish --provider="Sellmate\Laravel\MultiTenant\Providers\Mu
 | 연결 | 용도 |
 |---|---|
 | `system` | `tenants` 테이블이 있는 공용 DB |
-| `tenant_admin` | 테넌트 DB와 계정을 만들고 지우는 관리자 계정. `host`/`port`는 테넌트의 `db_host`/`db_port`로 바뀝니다 |
+| `tenant_admin` | 테넌트 DB와 계정을 만들고 지우는 관리자 계정. `host`/`port`는 테넌트의 `db_host`/`db_port`로 바뀝니다. SQL Server 에서는 `tenant:setup`·`tenant:destroy` 후 이 연결의 현재 DB 가 `master` 입니다 |
 | `tenant` | 요청·명령이 사용하는 테넌트 연결. `tenant_admin` 설정을 바탕으로 테넌트 DB·계정·비밀번호가 채워집니다 |
 
 ```php
