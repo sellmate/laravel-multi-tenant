@@ -1,0 +1,11 @@
+-- SqlServerDriver::destroy() step 0 (SqlServerDriverTest::destroyStatements()['permissions']), name = lmt_t24
+USE [master];
+IF ISNULL(HAS_PERMS_BY_NAME(NULL, NULL, 'ALTER ANY LOGIN'), 0) = 0
+    OR ISNULL(HAS_PERMS_BY_NAME(NULL, NULL, 'ALTER ANY CONNECTION'), 0) = 0
+    OR ISNULL(HAS_PERMS_BY_NAME(NULL, NULL, 'VIEW SERVER STATE'), 0) = 0
+    OR ISNULL(HAS_PERMS_BY_NAME(NULL, NULL, 'VIEW ANY DATABASE'), 0) = 0
+    OR (DB_ID(N'lmt_t24') IS NOT NULL
+        AND ISNULL(HAS_PERMS_BY_NAME(N'lmt_t24', 'DATABASE', 'CONTROL'), 0) = 0
+        AND ISNULL(HAS_PERMS_BY_NAME(NULL, NULL, 'ALTER ANY DATABASE'), 0) = 0)
+    THROW 50000, N'Missing permission: ALTER ANY LOGIN, ALTER ANY CONNECTION, VIEW SERVER STATE, VIEW ANY DATABASE, and CONTROL on the tenant database or ALTER ANY DATABASE are required.', 1;
+GO

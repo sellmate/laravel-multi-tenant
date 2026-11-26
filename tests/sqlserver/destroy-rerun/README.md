@@ -6,8 +6,8 @@
 
 | 파일 | 내용 |
 |---|---|
-| `step-1-disable.sql` … `step-4-drop-login.sql` | `destroy()` 의 각 단계(이름만 `lmt_t24`) |
-| `destroy.sql` | 네 단계를 순서대로 실행 |
+| `step-0-permissions.sql` … `step-4-drop-login.sql` | `destroy()` 의 각 단계(이름만 `lmt_t24`). 0 은 권한 확인 |
+| `destroy.sql` | 모든 단계를 순서대로 실행 |
 | `setup.sql` | `setup()` 이 남기는 상태(DB·로그인·DB 사용자) |
 | `assert-gone.sql` | DB·로그인이 남아 있으면 오류 |
 | `verify.sql` | 순차 재실행 시나리오 S1~S4 |
